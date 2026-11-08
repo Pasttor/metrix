@@ -93,5 +93,16 @@ export function supabaseMetricsStore(db: AdminClient, now: () => Date = () => ne
       if (error) fail("posts.listSince", error);
       return data.map((row) => ({ id: row.id, externalId: row.external_id, publishedAt: row.published_at }));
     },
+
+    async markMetricDeprecated(platform, scope, metric) {
+      const { error } = await db
+        .from("metric_catalog")
+        .update({ deprecated_at: now().toISOString() })
+        .eq("platform", platform)
+        .eq("scope", scope)
+        .eq("metric", metric)
+        .is("deprecated_at", null);
+      if (error) fail("metric_catalog.deprecate", error);
+    },
   };
 }

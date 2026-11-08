@@ -77,3 +77,22 @@ export const insightsSchema = z.object({
   ),
 });
 export type Insights = z.infer<typeof insightsSchema>;
+
+/** `GET /{page-id}?fields=followers_count,fan_count`. */
+export const fbPageProfileSchema = z.object({ followers_count: z.number().optional(), fan_count: z.number().optional() });
+
+const summarySchema = z.object({ summary: z.object({ total_count: z.number().optional() }).optional() });
+
+/** `GET /{page-id}/published_posts` items. `shares` is omitted when nobody shared. */
+export const fbPostSchema = z.object({
+  id: z.string().min(1),
+  message: z.string().optional(),
+  created_time: z.string().optional(),
+  permalink_url: z.string().optional(),
+  full_picture: z.string().optional(),
+  shares: z.object({ count: z.number() }).optional(),
+  comments: summarySchema.optional(),
+  reactions: summarySchema.optional(),
+  attachments: z.object({ data: z.array(z.object({ media_type: z.string().optional(), type: z.string().optional() })) }).optional(),
+});
+export type FbPost = z.infer<typeof fbPostSchema>;

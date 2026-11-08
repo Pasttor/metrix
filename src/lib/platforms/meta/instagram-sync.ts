@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { addDays, dateInTimeZone, daysBetween, isMonday, startOfDayInTimeZone } from "@/lib/dates";
 import { ReauthRequiredError, type AccessTokenGetter } from "@/lib/oauth/token-store";
-import { HttpError, type FetchFn, type RetryOptions } from "@/lib/platforms/http";
+import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
 import type { MetricsStore, PostMetricValue } from "@/lib/sync/metrics-store";
 import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
 import { createMetaClient, isMetaAuthError, isMetaRejected, type MetaClient } from "./client";
+import { fetchInsights, isBeforeConversion, isNoInsights, type InsightsContext } from "./insights";
 import {
   demographicRows,
   IG_ACCOUNT_DAILY_METRICS,
@@ -45,16 +46,6 @@ export type InstagramSyncDeps = {
 export function instagramStepsFor(job: AccountSyncInput["job"], reportDate: string): Step[] {
   if (job === "backfill" || isMonday(reportDate)) return [...STEPS];
   return ["profile", "account", "media", "stories"];
-}
-
-/** 100:2108006: media published before the account became professional; Meta keeps no insights for it. */
-function isBeforeConversion(error: unknown): boolean {
-  return error instanceof HttpError && /:100:2108006$/.test(error.code);
-}
-
-/** Item-level "no insights": not enough viewers (code 10) or published before the conversion. */
-function isNoInsights(error: unknown): boolean {
-  return isBeforeConversion(error) || (error instanceof HttpError && /^[A-Za-z]+:10(:|$)/.test(error.code));
 }
 
 export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
@@ -114,25 +105,9 @@ export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
       progress: done ? 1 : Math.min(0.99, (steps.indexOf(cursor!.step) + stepProgress) / steps.length),
     });
 
-    /**
-     * Requests several metrics at once; a single invalid metric fails the whole
-     * call (#100), so then it retries one by one and only the bad one becomes a warning.
-     */
-    async function insights(path: string, params: Record<string, string>, metrics: string[], label: string): Promise<Insights> {
-      try {
-        return await graph.get(path, { ...params, metric: metrics.join(",") }, insightsSchema, "meta.insights");
-      } catch (error) {
-        // Item-level refusals are not about one metric: let the caller skip the item.
-        if (!isMetaRejected(error) || isNoInsights(error)) throw error;
-        if (metrics.length === 1) {
-          warnings.add(`${label}: métrica ${metrics[0]} rechazada por Meta (${error.code})`);
-          return { data: [] };
-        }
-      }
-      const data: Insights["data"] = [];
-      for (const metric of metrics) data.push(...(await insights(path, params, [metric], label)).data);
-      return { data };
-    }
+    const ctx: InsightsContext = { graph, warnings };
+    const insights = (path: string, params: Record<string, string>, metrics: string[], label: string) =>
+      fetchInsights(ctx, path, params, metrics, label);
 
     async function writePostMetrics(ids: Map<string, string>, items: IgMedia[], fromIndex: number) {
       for (let i = fromIndex; i < items.length; i++) {

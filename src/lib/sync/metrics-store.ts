@@ -31,4 +31,6 @@ export interface MetricsStore {
   upsertAudience(accountId: string, date: string, rows: AudienceValue[]): Promise<number>;
   /** Posts published at or after `since`. */
   listPostsSince(accountId: string, since: Date): Promise<StoredPost[]>;
+  /** Flags a catalog metric the API now rejects as retired (only the first time). */
+  markMetricDeprecated?(platform: string, scope: "account" | "post" | "audience", metric: string): Promise<void>;
 }

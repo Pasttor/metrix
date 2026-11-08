@@ -54,6 +54,9 @@ describe("errorCode", () => {
     expect(
       await errorCode(json({ error: { message: "Error validating access token: secret", type: "OAuthException", code: 190, error_subcode: 463, fbtrace_id: "x" } })),
     ).toBe("OAuthException:190:463");
+    expect(await errorCode(json({ error: { message: "(#100) The value must be a valid insights metric", type: "OAuthException", code: 100 } }))).toBe(
+      "OAuthException:100:invalid_metric",
+    );
     expect(await errorCode(new Response("not json"))).toBe("");
   });
 });

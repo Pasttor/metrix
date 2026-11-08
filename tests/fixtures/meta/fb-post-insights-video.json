@@ -1,0 +1,72 @@
+{
+  "data": [
+    {
+      "name": "post_total_media_view_unique",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 132
+        }
+      ],
+      "title": "post_total_media_view_unique",
+      "id": "1000000000000001_2002/insights/post_total_media_view_unique/lifetime"
+    },
+    {
+      "name": "post_media_view",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 144
+        }
+      ],
+      "title": "post_media_view",
+      "id": "1000000000000001_2002/insights/post_media_view/lifetime"
+    },
+    {
+      "name": "post_reactions_by_type_total",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": {
+            "like": 1
+          }
+        }
+      ],
+      "title": "post_reactions_by_type_total",
+      "id": "1000000000000001_2002/insights/post_reactions_by_type_total/lifetime"
+    },
+    {
+      "name": "post_clicks",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "post_clicks",
+      "id": "1000000000000001_2002/insights/post_clicks/lifetime"
+    },
+    {
+      "name": "post_video_views",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 46
+        }
+      ],
+      "title": "post_video_views",
+      "id": "1000000000000001_2002/insights/post_video_views/lifetime"
+    },
+    {
+      "name": "post_video_avg_time_watched",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 7573
+        }
+      ],
+      "title": "post_video_avg_time_watched",
+      "id": "1000000000000001_2002/insights/post_video_avg_time_watched/lifetime"
+    }
+  ]
+}

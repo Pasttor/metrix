@@ -1,0 +1,113 @@
+{
+  "data": [
+    {
+      "name": "page_follows",
+      "period": "day",
+      "values": [
+        {
+          "value": 0,
+          "end_time": "2026-11-06T08:00:00+0000"
+        },
+        {
+          "value": 0,
+          "end_time": "2026-11-07T08:00:00+0000"
+        },
+        {
+          "value": 0,
+          "end_time": "2026-11-08T08:00:00+0000"
+        }
+      ],
+      "title": "page_follows",
+      "description": "",
+      "id": "1000000000000001/insights/page_follows/day"
+    },
+    {
+      "name": "page_total_media_view_unique",
+      "period": "day",
+      "values": [
+        {
+          "value": 288,
+          "end_time": "2026-11-06T08:00:00+0000"
+        },
+        {
+          "value": 123,
+          "end_time": "2026-11-07T08:00:00+0000"
+        },
+        {
+          "value": 97,
+          "end_time": "2026-11-08T08:00:00+0000"
+        }
+      ],
+      "title": "page_total_media_view_unique",
+      "description": "",
+      "id": "1000000000000001/insights/page_total_media_view_unique/day"
+    },
+    {
+      "name": "page_post_engagements",
+      "period": "day",
+      "values": [
+        {
+          "value": 1,
+          "end_time": "2026-11-06T08:00:00+0000"
+        },
+        {
+          "value": 0,
+          "end_time": "2026-11-07T08:00:00+0000"
+        },
+        {
+          "value": 0,
+          "end_time": "2026-11-08T08:00:00+0000"
+        }
+      ],
+      "title": "page_post_engagements",
+      "description": "",
+      "id": "1000000000000001/insights/page_post_engagements/day"
+    },
+    {
+      "name": "page_video_views",
+      "period": "day",
+      "values": [
+        {
+          "value": 49,
+          "end_time": "2026-11-06T08:00:00+0000"
+        },
+        {
+          "value": 11,
+          "end_time": "2026-11-07T08:00:00+0000"
+        },
+        {
+          "value": 12,
+          "end_time": "2026-11-08T08:00:00+0000"
+        }
+      ],
+      "title": "page_video_views",
+      "description": "",
+      "id": "1000000000000001/insights/page_video_views/day"
+    },
+    {
+      "name": "page_media_view",
+      "period": "day",
+      "values": [
+        {
+          "value": 319,
+          "end_time": "2026-11-06T08:00:00+0000"
+        },
+        {
+          "value": 135,
+          "end_time": "2026-11-07T08:00:00+0000"
+        },
+        {
+          "value": 107,
+          "end_time": "2026-11-08T08:00:00+0000"
+        }
+      ],
+      "title": "page_media_view",
+      "description": "",
+      "id": "1000000000000001/insights/page_media_view/day"
+    }
+  ],
+  "paging": {
+    "previous": "https://graph.facebook.com/x",
+    "next": "https://graph.facebook.com/y"
+  }
+}

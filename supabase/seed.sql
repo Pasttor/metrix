@@ -74,6 +74,7 @@ values
   ('facebook', 'account', 'page_total_media_view_unique', 'reach', 'Espectadores únicos', null, 'count'),
   ('facebook', 'account', 'page_post_engagements', 'interactions', 'Interacciones con publicaciones', null, 'count'),
   ('facebook', 'account', 'page_video_views', null, 'Reproducciones de video', null, 'count'),
+  ('facebook', 'account', 'page_media_view', 'views', 'Vistas', 'Veces que se vio contenido de la Página (reemplaza a las impresiones)', 'count'),
   -- Facebook: posts
   ('facebook', 'post', 'post_total_media_view_unique', 'reach', 'Espectadores únicos', null, 'count'),
   ('facebook', 'post', 'post_reactions_by_type_total', null, 'Reacciones por tipo', null, 'count'),
@@ -81,6 +82,9 @@ values
   ('facebook', 'post', 'reactions', 'likes', 'Reacciones', 'Total de reacciones del post', 'count'),
   ('facebook', 'post', 'comments', 'comments', 'Comentarios', null, 'count'),
   ('facebook', 'post', 'shares', 'shares', 'Compartidos', null, 'count'),
+  ('facebook', 'post', 'post_media_view', 'views', 'Vistas', 'Veces que se vio el post', 'count'),
+  ('facebook', 'post', 'post_video_views', null, 'Reproducciones de video', 'Vistas de 3 segundos o más', 'count'),
+  ('facebook', 'post', 'post_video_avg_time_watched', null, 'Tiempo medio de visualización', 'La API lo entrega en milisegundos', 'milliseconds'),
 
   -- TikTok: account (Display API user.info)
   ('tiktok', 'account', 'follower_count', 'followers', 'Seguidores', 'Total de seguidores ese día', 'count'),
