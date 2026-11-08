@@ -10,8 +10,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:reset": "supabase db reset",
-    "db:types": "supabase gen types typescript --local > src/lib/db/types.ts"
+    "db:types": "supabase gen types --remote --schema public > src/lib/db/types.ts",
+    "db:push": "supabase db push --remote --include-seed",
+    "db:config": "node --env-file=.env.local scripts/sync-app-config.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -26,6 +27,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
     "@tailwindcss/turbopack": "^4",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",

@@ -32,9 +32,12 @@ pnpm dev              # servidor local en http://localhost:3000
 pnpm lint             # ESLint
 pnpm typecheck        # tsc --noEmit
 pnpm test             # Vitest (sin llamadas reales a APIs)
-pnpm db:reset         # supabase db reset (aplica migraciones + seed en local)
-pnpm db:types         # regenera src/lib/db/types.ts desde el esquema local
+pnpm db:push          # aplica migraciones nuevas + seed al proyecto de Supabase enlazado
+pnpm db:types         # regenera src/lib/db/types.ts desde el proyecto de Supabase
+pnpm db:config        # copia ALLOWED_EMAIL de .env.local a app_config (lo usa RLS)
 ```
+
+No se usa Docker ni Supabase local: las migraciones van directo al proyecto en la nube. Las pruebas de base de datos corren las migraciones en PGlite (Postgres en memoria) dentro de Vitest. `db:push` y `db:types` requieren una vez `pnpm exec supabase login` y `pnpm exec supabase link --project-ref <ref>`.
 
 Antes de dar una tarea por terminada, `pnpm lint && pnpm typecheck && pnpm test` deben pasar sin errores.
 
@@ -64,8 +67,10 @@ src/
       tiktok/                # client.ts, sync.ts, schemas.ts
 supabase/
   migrations/                # SQL versionado; nunca edites una migración ya aplicada
-  seed.sql                   # metric_catalog inicial
+  seed.sql                   # metric_catalog inicial (idempotente)
+scripts/                     # utilidades de mantenimiento (db:config)
 tests/
+  db/                        # pruebas de esquema y RLS con PGlite
   fixtures/                  # respuestas JSON de ejemplo de cada API
 docs/
   PLAN.md                    # plan de tareas
@@ -89,7 +94,7 @@ docs/
 - Subir al repo `.env*` con valores reales (solo `.env.example`).
 - Usar scraping, APIs no oficiales o servicios de terceros que extraigan datos de las redes.
 - Llamar APIs reales en pruebas: usa fixtures en `tests/fixtures` y `fetch` simulado.
-- Editar migraciones ya aplicadas: crea una nueva.
+- Editar migraciones ya aplicadas: crea una nueva. Cada tabla nueva necesita `grant` explícitos para `service_role` (y `select` para `authenticated` si el dashboard la lee): Supabase ya no los da por defecto.
 - Desactivar RLS en cualquier tabla.
 - Agregar funciones de publicación o de escritura en las redes sociales.
 - Instalar dependencias grandes sin justificarlo en la descripción del PR.

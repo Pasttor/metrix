@@ -148,7 +148,7 @@ Métricas unificadas (`metric_catalog.unified_metric`) para comparar entre redes
 - Generar `src/lib/db/types.ts`.
 
 **Criterios de aceptación**
-- `pnpm db:reset` crea todo sin errores y carga el catálogo.
+- `pnpm db:reset` crea todo sin errores y carga el catálogo. *(Ajuste: el proyecto no usa Docker; las migraciones y el seed se aplican al proyecto en la nube con `pnpm db:push`, y las pruebas corren el esquema en PGlite. Ver `AGENTS.md`.)*
 - Una prueba confirma que un usuario con otro correo no puede leer `accounts` (prueba de integración contra Supabase local, o prueba de la función SQL de autorización).
 
 #### T02 — Login de un solo usuario y layout

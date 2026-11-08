@@ -15,4 +15,14 @@ pnpm dev
 
 La app no arranca si falta una variable requerida (`src/lib/env.ts`).
 
+## Base de datos (sin Docker)
+
+```bash
+pnpm exec supabase login
+pnpm exec supabase link --project-ref <ref-del-proyecto>
+pnpm db:push      # migraciones + seed
+pnpm db:config    # guarda ALLOWED_EMAIL en app_config
+pnpm db:types     # regenera src/lib/db/types.ts
+```
+
 Las instrucciones completas de instalación y despliegue llegan en T17.
