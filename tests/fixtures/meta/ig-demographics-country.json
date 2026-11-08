@@ -1,0 +1,32 @@
+{
+  "data": [
+    {
+      "name": "follower_demographics",
+      "period": "lifetime",
+      "total_value": {
+        "breakdowns": [
+          {
+            "dimension_keys": [
+              "country"
+            ],
+            "results": [
+              {
+                "dimension_values": [
+                  "MX"
+                ],
+                "value": 812
+              },
+              {
+                "dimension_values": [
+                  "US"
+                ],
+                "value": 96
+              }
+            ]
+          }
+        ]
+      },
+      "id": "x"
+    }
+  ]
+}

@@ -29,3 +29,21 @@ export function minDate(a: string, b: string): string {
 export function isMonday(isoDate: string): boolean {
   return new Date(toUtcMs(isoDate)).getUTCDay() === 1;
 }
+
+function offsetMs(instant: number, timeZone: string): number {
+  const name = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
+    .formatToParts(new Date(instant))
+    .find((part) => part.type === "timeZoneName")?.value;
+  const match = /GMT([+-])(\d{2}):?(\d{2})?/.exec(name ?? "");
+  if (!match) return 0;
+  const minutes = Number(match[2]) * 60 + Number(match[3] ?? 0);
+  return (match[1] === "-" ? -1 : 1) * minutes * 60_000;
+}
+
+/** The instant (ms) when `isoDate` starts in `timeZone`, DST-aware. */
+export function startOfDayInTimeZone(isoDate: string, timeZone: string): number {
+  const utcMidnight = toUtcMs(isoDate);
+  let guess = utcMidnight - offsetMs(utcMidnight, timeZone);
+  guess = utcMidnight - offsetMs(guess, timeZone);
+  return guess;
+}

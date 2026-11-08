@@ -1,0 +1,38 @@
+{
+  "data": [
+    {
+      "id": "18000000000000001",
+      "caption": "Por qué quebró Blockbuster",
+      "media_type": "VIDEO",
+      "media_product_type": "REELS",
+      "permalink": "https://www.instagram.com/reel/AAA/",
+      "thumbnail_url": "https://scontent.cdninstagram.com/thumb1.jpg",
+      "media_url": "https://scontent.cdninstagram.com/video1.mp4",
+      "timestamp": "2026-11-06T18:00:00+0000"
+    },
+    {
+      "id": "18000000000000002",
+      "caption": "Carrusel: 5 quiebras",
+      "media_type": "CAROUSEL_ALBUM",
+      "media_product_type": "FEED",
+      "permalink": "https://www.instagram.com/p/BBB/",
+      "media_url": "https://scontent.cdninstagram.com/c1.jpg",
+      "timestamp": "2026-11-02T15:00:00+0000"
+    },
+    {
+      "id": "18000000000000003",
+      "caption": "Foto vieja",
+      "media_type": "IMAGE",
+      "media_product_type": "FEED",
+      "permalink": "https://www.instagram.com/p/CCC/",
+      "media_url": "https://scontent.cdninstagram.com/img3.jpg",
+      "timestamp": "2026-08-01T12:00:00+0000"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "a",
+      "after": "b"
+    }
+  }
+}

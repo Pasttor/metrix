@@ -38,3 +38,42 @@ export function pagedSchema<T extends z.ZodType>(item: T) {
     paging: z.object({ next: z.string().optional() }).optional(),
   });
 }
+
+/** `GET /{ig-user-id}?fields=followers_count,media_count`. */
+export const igProfileSchema = z.object({
+  id: z.string().optional(),
+  username: z.string().optional(),
+  followers_count: z.number().optional(),
+  media_count: z.number().optional(),
+});
+
+/** `GET /{ig-user-id}/media` and `/stories` items. */
+export const igMediaSchema = z.object({
+  id: z.string().min(1),
+  caption: z.string().optional(),
+  media_type: z.string().optional(),
+  media_product_type: z.string().optional(),
+  permalink: z.string().optional(),
+  thumbnail_url: z.string().optional(),
+  media_url: z.string().optional(),
+  timestamp: z.string().optional(),
+});
+export type IgMedia = z.infer<typeof igMediaSchema>;
+
+const breakdownSchema = z.object({
+  dimension_keys: z.array(z.string()).optional(),
+  results: z.array(z.object({ dimension_values: z.array(z.string()), value: z.number() })).optional(),
+});
+
+/** `GET /{id}/insights`: `values` (time series / lifetime) or `total_value` (with optional breakdowns). */
+export const insightsSchema = z.object({
+  data: z.array(
+    z.object({
+      name: z.string(),
+      period: z.string().optional(),
+      values: z.array(z.object({ value: z.unknown(), end_time: z.string().optional() })).optional(),
+      total_value: z.object({ value: z.number().optional(), breakdowns: z.array(breakdownSchema).optional() }).optional(),
+    }),
+  ),
+});
+export type Insights = z.infer<typeof insightsSchema>;

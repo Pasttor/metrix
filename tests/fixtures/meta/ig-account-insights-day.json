@@ -1,0 +1,114 @@
+{
+  "data": [
+    {
+      "name": "views",
+      "period": "day",
+      "title": "views",
+      "description": "",
+      "total_value": {
+        "value": 121
+      },
+      "id": "17841400000000001/insights/views/day"
+    },
+    {
+      "name": "reach",
+      "period": "day",
+      "title": "reach",
+      "description": "",
+      "total_value": {
+        "value": 95
+      },
+      "id": "17841400000000001/insights/reach/day"
+    },
+    {
+      "name": "accounts_engaged",
+      "period": "day",
+      "title": "accounts_engaged",
+      "description": "",
+      "total_value": {
+        "value": 2
+      },
+      "id": "17841400000000001/insights/accounts_engaged/day"
+    },
+    {
+      "name": "total_interactions",
+      "period": "day",
+      "title": "total_interactions",
+      "description": "",
+      "total_value": {
+        "value": 2
+      },
+      "id": "17841400000000001/insights/total_interactions/day"
+    },
+    {
+      "name": "likes",
+      "period": "day",
+      "title": "likes",
+      "description": "",
+      "total_value": {
+        "value": 2
+      },
+      "id": "17841400000000001/insights/likes/day"
+    },
+    {
+      "name": "comments",
+      "period": "day",
+      "title": "comments",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/comments/day"
+    },
+    {
+      "name": "shares",
+      "period": "day",
+      "title": "shares",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/shares/day"
+    },
+    {
+      "name": "saves",
+      "period": "day",
+      "title": "saves",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/saves/day"
+    },
+    {
+      "name": "replies",
+      "period": "day",
+      "title": "replies",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/replies/day"
+    },
+    {
+      "name": "profile_links_taps",
+      "period": "day",
+      "title": "profile_links_taps",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/profile_links_taps/day"
+    },
+    {
+      "name": "reposts",
+      "period": "day",
+      "title": "reposts",
+      "description": "",
+      "total_value": {
+        "value": 0
+      },
+      "id": "17841400000000001/insights/reposts/day"
+    }
+  ]
+}

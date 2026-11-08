@@ -23,3 +23,15 @@ describe("dates", () => {
     expect(isMonday("2026-11-08")).toBe(false);
   });
 });
+
+describe("startOfDayInTimeZone", () => {
+  it("returns the UTC instant of local midnight, across DST", async () => {
+    const { startOfDayInTimeZone } = await import("./dates");
+    // DST ends on 2026-11-01 at 2:00: that midnight is still PDT (UTC−7), the next one PST (UTC−8).
+    expect(new Date(startOfDayInTimeZone("2026-10-31", "America/Los_Angeles")).toISOString()).toBe("2026-10-31T07:00:00.000Z");
+    expect(new Date(startOfDayInTimeZone("2026-11-01", "America/Los_Angeles")).toISOString()).toBe("2026-11-01T07:00:00.000Z");
+    expect(new Date(startOfDayInTimeZone("2026-11-02", "America/Los_Angeles")).toISOString()).toBe("2026-11-02T08:00:00.000Z");
+    expect(new Date(startOfDayInTimeZone("2026-11-07", "America/Los_Angeles")).toISOString()).toBe("2026-11-07T08:00:00.000Z");
+    expect(new Date(startOfDayInTimeZone("2026-11-08", "UTC")).toISOString()).toBe("2026-11-08T00:00:00.000Z");
+  });
+});

@@ -1,0 +1,158 @@
+{
+  "data": [
+    {
+      "name": "views",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 289
+        }
+      ],
+      "title": "views",
+      "id": "18000000000000001/insights/views/lifetime"
+    },
+    {
+      "name": "reach",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 229
+        }
+      ],
+      "title": "reach",
+      "id": "18000000000000001/insights/reach/lifetime"
+    },
+    {
+      "name": "likes",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 3
+        }
+      ],
+      "title": "likes",
+      "id": "18000000000000001/insights/likes/lifetime"
+    },
+    {
+      "name": "comments",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "comments",
+      "id": "18000000000000001/insights/comments/lifetime"
+    },
+    {
+      "name": "shares",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "shares",
+      "id": "18000000000000001/insights/shares/lifetime"
+    },
+    {
+      "name": "saved",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "saved",
+      "id": "18000000000000001/insights/saved/lifetime"
+    },
+    {
+      "name": "total_interactions",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 3
+        }
+      ],
+      "title": "total_interactions",
+      "id": "18000000000000001/insights/total_interactions/lifetime"
+    },
+    {
+      "name": "reposts",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "reposts",
+      "id": "18000000000000001/insights/reposts/lifetime"
+    },
+    {
+      "name": "total_likes",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 3
+        }
+      ],
+      "title": "total_likes",
+      "id": "18000000000000001/insights/total_likes/lifetime"
+    },
+    {
+      "name": "total_comments",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 0
+        }
+      ],
+      "title": "total_comments",
+      "id": "18000000000000001/insights/total_comments/lifetime"
+    },
+    {
+      "name": "total_views",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 289
+        }
+      ],
+      "title": "total_views",
+      "id": "18000000000000001/insights/total_views/lifetime"
+    },
+    {
+      "name": "ig_reels_avg_watch_time",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 13432
+        }
+      ],
+      "title": "ig_reels_avg_watch_time",
+      "id": "18000000000000001/insights/ig_reels_avg_watch_time/lifetime"
+    },
+    {
+      "name": "ig_reels_video_view_total_time",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 3076024
+        }
+      ],
+      "title": "ig_reels_video_view_total_time",
+      "id": "18000000000000001/insights/ig_reels_video_view_total_time/lifetime"
+    },
+    {
+      "name": "reels_skip_rate",
+      "period": "lifetime",
+      "values": [
+        {
+          "value": 44.7
+        }
+      ],
+      "title": "reels_skip_rate",
+      "id": "18000000000000001/insights/reels_skip_rate/lifetime"
+    }
+  ]
+}
