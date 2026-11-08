@@ -1,20 +1,36 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { AccountSyncActions } from "@/components/connections/account-sync-actions";
 import { ConnectionCard } from "@/components/connections/connection-card";
 import { ConnectionNotice } from "@/components/connections/connection-notice";
 import { listConnectionCards } from "@/lib/connections";
 import { getEnv } from "@/lib/env";
+import { hasSyncer } from "@/lib/sync/registry";
 
 export const metadata: Metadata = { title: "Conexiones · Metrix" };
+
+// Applies to this page's Server Actions ("Sincronizar ahora").
+export const maxDuration = 60;
 
 async function ConnectionCards() {
   const cards = await listConnectionCards();
   const timeZone = getEnv().REPORT_TIMEZONE;
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {cards.map((card) => (
-        <ConnectionCard key={card.platform} card={card} timeZone={timeZone} />
-      ))}
+      {cards.map((card) => {
+        const syncAvailable = hasSyncer(card.connectPlatform);
+        return (
+          <ConnectionCard
+            key={card.platform}
+            card={card}
+            timeZone={timeZone}
+            accountActions={(accountId) => {
+              const active = card.accounts.find((account) => account.id === accountId)?.status === "active";
+              return <AccountSyncActions accountId={accountId} enabled={syncAvailable && active} />;
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
