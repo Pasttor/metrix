@@ -1,0 +1,39 @@
+{
+  "data": [
+    {
+      "id": "1000000000000001",
+      "name": "Empresas al Filo",
+      "username": "empresasalfilo",
+      "access_token": "EAApage-fixture-1",
+      "category": "Medios de comunicación",
+      "tasks": [
+        "ANALYZE",
+        "ADVERTISE",
+        "MESSAGING",
+        "MODERATE",
+        "CREATE_CONTENT",
+        "MANAGE"
+      ],
+      "picture": {
+        "data": {
+          "url": "https://scontent.xx.fbcdn.net/fixture-page.jpg",
+          "height": 50,
+          "width": 50,
+          "is_silhouette": false
+        }
+      },
+      "instagram_business_account": {
+        "id": "17841400000000001",
+        "username": "casiquiebra",
+        "profile_picture_url": "https://scontent.xx.fbcdn.net/fixture-ig.jpg"
+      }
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFI",
+      "after": "QVFJ"
+    },
+    "next": "https://graph.facebook.com/v26.0/me/accounts?fields=id&limit=100&after=QVFJ"
+  }
+}

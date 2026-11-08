@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "id": "1000000000000002",
+      "name": "Página sin Instagram",
+      "access_token": "EAApage-fixture-2",
+      "picture": {
+        "data": {
+          "url": "https://scontent.xx.fbcdn.net/fixture-page2.jpg"
+        }
+      }
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFK",
+      "after": "QVFL"
+    }
+  }
+}

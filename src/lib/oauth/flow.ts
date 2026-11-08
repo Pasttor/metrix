@@ -101,7 +101,16 @@ export async function finishConnect(
     await deps.saveConnection(accounts);
   } catch (error) {
     // Log only a safe code: provider errors can echo codes or tokens.
-    const reason = error instanceof ConnectorError ? error.code : error instanceof Error ? error.name : "unknown";
+    // ConnectorError messages are written by our connectors (status, codes, counts) and never
+    // carry tokens or provider payloads; any other error logs only its name.
+    const reason =
+      error instanceof ConnectorError
+        ? error.message === error.code
+          ? error.code
+          : `${error.code} (${error.message})`
+        : error instanceof Error
+          ? error.name
+          : "unknown";
     log(`[connect:${platform}] callback failed: ${reason}`);
     return toConnections(deps.appUrl, {
       error: error instanceof ConnectorError ? error.code : "callback_failed",

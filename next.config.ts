@@ -11,6 +11,11 @@ if (!process.argv.includes("typegen")) {
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  logging: {
+    // The dev server logs full request URLs. OAuth callbacks carry `code` and the
+    // magic link carries `token_hash`/`code`, which must never reach a log.
+    incomingRequests: { ignore: [/\/api\/connect\/[^/]+\/callback/, /\/auth\/confirm/, /[?&](code|token_hash|state)=/] },
+  },
   turbopack: {
     rules: {
       "*.css": {

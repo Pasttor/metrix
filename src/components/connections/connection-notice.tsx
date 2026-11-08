@@ -14,9 +14,11 @@ const ERRORS: Record<string, (platform: string) => string> = {
   token_exchange_failed: (p) => `${p} rechazó el código de autorización. Vuelve a intentarlo.`,
   no_refresh_token: () =>
     "Google no entregó un token de actualización. Quita el acceso de Metrix en myaccount.google.com/connections y vuelve a conectar.",
-  missing_scopes: () =>
-    "Faltan permisos de YouTube. Al conectar, deja marcadas todas las casillas de acceso que pide Metrix.",
+  missing_scopes: (p) => `Faltan permisos de ${p}. Al conectar, deja marcadas todas las casillas de acceso que pide Metrix.`,
   no_channel: () => "Esa cuenta de Google no tiene canal de YouTube. Conecta con la cuenta o cuenta de marca del canal.",
+  no_pages: () =>
+    "Meta no devolvió ninguna Página. Al conectar, elige tu Página de Facebook (y su cuenta de Instagram) en la ventana de Meta.",
+  accounts_lookup_failed: () => "Se obtuvo el permiso, pero no se pudieron leer tus Páginas de Facebook. Vuelve a intentarlo.",
   channel_lookup_failed: () => "Se obtuvo el permiso, pero no se pudo leer el canal de YouTube. Vuelve a intentarlo.",
 };
 

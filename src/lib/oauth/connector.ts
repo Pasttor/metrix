@@ -25,7 +25,10 @@ export interface PlatformConnector {
   refresh(refreshToken: string): Promise<OAuthTokens>;
 }
 
-/** Error a connector raises with a code that is safe to show (never provider payloads). */
+/**
+ * Error a connector raises with a code that is safe to show. The message is logged,
+ * so it may hold statuses, error codes and counts, never tokens, codes or provider payloads.
+ */
 export class ConnectorError extends Error {
   constructor(readonly code: string, message?: string) {
     super(message ?? code);

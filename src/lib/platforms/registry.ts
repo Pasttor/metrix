@@ -1,6 +1,7 @@
 import { getEnv } from "@/lib/env";
 import type { PlatformConnector } from "@/lib/oauth/connector";
 import type { ConnectPlatform } from "@/lib/oauth/types";
+import { createMetaConnector } from "./meta/connector";
 import { createYouTubeConnector } from "./youtube/connector";
 
 /**
@@ -15,6 +16,16 @@ const factories: Partial<Record<ConnectPlatform, () => PlatformConnector | null>
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
       monetary: env.YOUTUBE_MONETARY,
+    });
+  },
+  meta() {
+    const env = getEnv();
+    if (!env.META_APP_ID || !env.META_APP_SECRET) return null;
+    return createMetaConnector({
+      appId: env.META_APP_ID,
+      appSecret: env.META_APP_SECRET,
+      version: env.META_GRAPH_VERSION,
+      loginConfigId: env.META_LOGIN_CONFIG_ID,
     });
   },
 };

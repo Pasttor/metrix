@@ -65,12 +65,15 @@ export async function fetchWithRetry(
   }
 }
 
-type ErrorBody = { error?: string | { status?: unknown; errors?: { reason?: unknown }[] } };
+type ErrorBody = {
+  error?: string | { status?: unknown; errors?: { reason?: unknown }[]; type?: unknown; code?: unknown; error_subcode?: unknown };
+};
 
 /**
  * Reads a short code from a provider error body without exposing the rest:
  * OAuth bodies use `error: "invalid_grant"`, Google APIs use
- * `error: { errors: [{ reason }], status }`.
+ * `error: { errors: [{ reason }], status }`, Meta uses
+ * `error: { type, code, error_subcode }` (→ "OAuthException:190:463").
  */
 export async function errorCode(response: Response): Promise<string> {
   const body = (await response.json().catch(() => null)) as ErrorBody | null;
@@ -79,6 +82,10 @@ export async function errorCode(response: Response): Promise<string> {
   const reason = error?.errors?.[0]?.reason;
   if (typeof reason === "string") return reason.slice(0, 64);
   if (typeof error?.status === "string") return error.status.slice(0, 64);
+  if (typeof error?.type === "string") {
+    const parts = [error.type, error.code, error.error_subcode].filter((part) => typeof part === "string" || typeof part === "number");
+    return parts.join(":").slice(0, 64);
+  }
   return "";
 }
 

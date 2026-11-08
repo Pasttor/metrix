@@ -51,6 +51,9 @@ describe("errorCode", () => {
       "quotaExceeded",
     );
     expect(await errorCode(json({ error: { status: "UNAUTHENTICATED" } }))).toBe("UNAUTHENTICATED");
+    expect(
+      await errorCode(json({ error: { message: "Error validating access token: secret", type: "OAuthException", code: 190, error_subcode: 463, fbtrace_id: "x" } })),
+    ).toBe("OAuthException:190:463");
     expect(await errorCode(new Response("not json"))).toBe("");
   });
 });
