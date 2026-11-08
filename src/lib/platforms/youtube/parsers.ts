@@ -132,12 +132,18 @@ export function audienceFromReport(
   });
 }
 
-export type RetentionPoint = { ratio: number; audienceWatchRatio: number };
+/**
+ * One point of the retention curve. `audienceWatchRatio` can exceed 1 when viewers
+ * rewatch (common in Shorts); `relativePerformance` compares with YouTube videos of
+ * similar length (0.5 is the median), null when not requested or not available.
+ */
+export type RetentionPoint = { ratio: number; audienceWatchRatio: number; relativePerformance: number | null };
 
 export function retentionFromReport(report: AnalyticsReport): RetentionPoint[] {
   return reportRecords(report).flatMap((record) => {
     const ratio = toNumber(record.elapsedVideoTimeRatio);
     const audienceWatchRatio = toNumber(record.audienceWatchRatio);
-    return ratio === null || audienceWatchRatio === null ? [] : [{ ratio, audienceWatchRatio }];
+    if (ratio === null || audienceWatchRatio === null) return [];
+    return [{ ratio, audienceWatchRatio, relativePerformance: toNumber(record.relativeRetentionPerformance) }];
   });
 }

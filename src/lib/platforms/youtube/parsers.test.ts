@@ -115,11 +115,11 @@ describe("report parsers", () => {
     });
   });
 
-  it("parses the retention curve", () => {
+  it("parses the retention curve with relative performance", () => {
     expect(retentionFromReport(report(retention))).toEqual([
-      { ratio: 0.01, audienceWatchRatio: 1 },
-      { ratio: 0.5, audienceWatchRatio: 0.42 },
-      { ratio: 1, audienceWatchRatio: 0.18 },
+      { ratio: 0.5, audienceWatchRatio: 0.42, relativePerformance: 0.48 },
+      { ratio: 0.01, audienceWatchRatio: 1.26, relativePerformance: 0.61 },
+      { ratio: 1, audienceWatchRatio: 0.18, relativePerformance: 0.39 },
     ]);
   });
 });

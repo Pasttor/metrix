@@ -3,6 +3,7 @@ import { addDays, dateInTimeZone, daysBetween, isMonday, minDate } from "@/lib/d
 import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
 import { HttpError } from "@/lib/platforms/http";
 import type { MetricsStore } from "@/lib/sync/metrics-store";
+import type { AccessTokenGetter } from "@/lib/oauth/token-store";
 import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
 import { createYouTubeClient, VIDEOS_PER_REQUEST, type AnalyticsQuery, type YouTubeClient } from "./client";
 import {
@@ -51,7 +52,7 @@ const cursorSchema = z.object({
 type Cursor = z.infer<typeof cursorSchema>;
 
 export type YouTubeSyncDeps = {
-  getAccessToken: (accountId: string) => Promise<string>;
+  getAccessToken: AccessTokenGetter;
   store: MetricsStore;
   monetary: boolean;
   reportTimeZone: string;
@@ -69,6 +70,10 @@ export function stepsFor(job: AccountSyncInput["job"], reportDate: string): Step
   return isMonday(reportDate) ? ["snapshot", "analytics", "videos", "weekly"] : ["snapshot", "analytics", "videos"];
 }
 
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof HttpError && error.status === 401;
+}
+
 function isRejectedQuery(error: unknown): error is HttpError {
   return error instanceof HttpError && error.status === 400;
 }
@@ -76,15 +81,27 @@ function isRejectedQuery(error: unknown): error is HttpError {
 export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
   return {
     async syncAccount({ account, job, cursor: rawCursor, shouldStop, now }: AccountSyncInput): Promise<AccountSyncResult> {
-      const client = createYouTubeClient({
-        accessToken: await deps.getAccessToken(account.id),
-        fetch: deps.fetch,
-        retry: deps.retry,
-      });
+      const connect = async (forceRefresh: boolean) =>
+        createYouTubeClient({
+          accessToken: await deps.getAccessToken(account.id, { forceRefresh }),
+          fetch: deps.fetch,
+          retry: deps.retry,
+        });
       const warnings = new Set<string>();
       let rowsWritten = 0;
 
-      const channel = (await client.listMyChannels()).find((item) => item.id === account.externalId);
+      let client = await connect(false);
+      let channels: Channel[];
+      try {
+        channels = await client.listMyChannels();
+      } catch (error) {
+        // 401 with an unexpired token: it was revoked or invalidated. Refresh once;
+        // if Google rejects the refresh too, the account is marked for reconnection.
+        if (!isUnauthorized(error)) throw error;
+        client = await connect(true);
+        channels = await client.listMyChannels();
+      }
+      const channel = channels.find((item) => item.id === account.externalId);
       if (!channel) throw new Error("El canal conectado ya no está disponible con este acceso; reconecta YouTube");
 
       const reportDate = dateInTimeZone(now, deps.reportTimeZone);

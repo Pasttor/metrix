@@ -85,6 +85,18 @@ describe("tokenStore", () => {
     expect(statuses.get("acc")).toBe("reauth_required");
   });
 
+  it("forces a refresh of an unexpired token after a 401 and marks reauth if Google revoked the grant", async () => {
+    const { store, statuses } = setup();
+    await store.saveTokens("acc", { accessToken: "revoked", refreshToken: "r1", expiresAt: minutes(30) });
+
+    const refresh = vi.fn().mockResolvedValue({ accessToken: "fresh", expiresAt: minutes(60) });
+    await expect(store.getValidAccessToken("acc", refresh, { forceRefresh: true })).resolves.toBe("fresh");
+
+    const rejected = vi.fn().mockRejectedValue(new RefreshRejectedError());
+    await expect(store.getValidAccessToken("acc", rejected, { forceRefresh: true })).rejects.toBeInstanceOf(ReauthRequiredError);
+    expect(statuses.get("acc")).toBe("reauth_required");
+  });
+
   it("does not mark reauth on a transient refresh failure", async () => {
     const { store, statuses } = setup();
     await store.saveTokens("acc", { accessToken: "a1", refreshToken: "r1", expiresAt: minutes(1) });

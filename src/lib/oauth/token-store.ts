@@ -23,6 +23,9 @@ export interface TokenRepo {
 /** Per-platform refresh. Throw RefreshRejectedError when the provider says the grant is gone. */
 export type RefreshFn = (refreshToken: string) => Promise<OAuthTokens>;
 
+/** What syncers receive: a valid access token, optionally forcing a refresh after a 401. */
+export type AccessTokenGetter = (accountId: string, options?: { forceRefresh?: boolean }) => Promise<string>;
+
 export class RefreshRejectedError extends Error {
   constructor(message = "Refresh token rejected by the provider") {
     super(message);
@@ -68,13 +71,22 @@ export function createTokenStore(
     throw new ReauthRequiredError(accountId);
   }
 
-  async function getValidAccessToken(accountId: string, refresh?: RefreshFn): Promise<string> {
+  /**
+   * `forceRefresh`: the provider answered 401 to a token that had not expired
+   * (revoked or invalidated), so skip the expiry shortcut and refresh now. If the
+   * refresh is rejected too, the account is marked for reconnection.
+   */
+  async function getValidAccessToken(
+    accountId: string,
+    refresh?: RefreshFn,
+    options: { forceRefresh?: boolean } = {},
+  ): Promise<string> {
     const row = await repo.get(accountId);
     if (!row) return failReauth(accountId);
 
     const current = now().getTime();
     const expiresAt = row.expires_at ? new Date(row.expires_at).getTime() : null;
-    if (expiresAt === null || expiresAt - current > REFRESH_MARGIN_MS) {
+    if (!options.forceRefresh && (expiresAt === null || expiresAt - current > REFRESH_MARGIN_MS)) {
       return dec(row.access_token_enc);
     }
 

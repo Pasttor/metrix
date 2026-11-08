@@ -3,14 +3,15 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getEnv } from "@/lib/env";
 import { createTokenStoreForServer } from "@/lib/oauth/deps";
 import type { PlatformConnector } from "@/lib/oauth/connector";
+import type { AccessTokenGetter } from "@/lib/oauth/token-store";
 import { supabaseMetricsStore } from "@/lib/sync/supabase-metrics-store";
 import type { Syncer } from "@/lib/sync/types";
 import type { RetentionDeps } from "./retention";
 import { createYouTubeSyncer } from "./sync";
 
-function accessTokenGetter(connector: PlatformConnector) {
+function accessTokenGetter(connector: PlatformConnector): AccessTokenGetter {
   const tokens = createTokenStoreForServer();
-  return (accountId: string) => tokens.getValidAccessToken(accountId, (refreshToken) => connector.refresh(refreshToken));
+  return (accountId, options) => tokens.getValidAccessToken(accountId, (refreshToken) => connector.refresh(refreshToken), options);
 }
 
 export function youtubeSyncer(connector: PlatformConnector): Syncer {

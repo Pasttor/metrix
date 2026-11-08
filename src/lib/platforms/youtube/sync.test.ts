@@ -14,6 +14,7 @@ import videosPage1 from "../../../../tests/fixtures/youtube/videos-page1.json";
 import videosPage2 from "../../../../tests/fixtures/youtube/videos-page2.json";
 import { addDays, daysBetween } from "@/lib/dates";
 import type { Json } from "@/lib/db/types";
+import { ReauthRequiredError, type AccessTokenGetter } from "@/lib/oauth/token-store";
 import { HttpError } from "@/lib/platforms/http";
 import type { MetricsStore, PostUpsert } from "@/lib/sync/metrics-store";
 import type { AccountSyncInput, SyncAccount } from "@/lib/sync/types";
@@ -38,13 +39,17 @@ function selectMetrics(report: Report, metrics: string[]): Report {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-type FakeOptions = { rejectMetrics?: string[]; emptyDaily?: boolean; channelsBody?: unknown; failWith?: Response };
+type FakeOptions = { rejectMetrics?: string[]; emptyDaily?: boolean; channelsBody?: unknown; failWith?: Response; revokedToken?: string };
 
 function fakeYouTube(options: FakeOptions = {}) {
   const calls: URL[] = [];
-  const fetch = async (input: RequestInfo | URL) => {
+  const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input));
     calls.push(url);
+    const auth = (init?.headers as Record<string, string> | undefined)?.Authorization;
+    if (options.revokedToken && auth === `Bearer ${options.revokedToken}`) {
+      return json({ error: { code: 401, status: "UNAUTHENTICATED", errors: [{ reason: "authError" }] } }, 401);
+    }
     const params = url.searchParams;
     if (options.failWith && url.pathname.endsWith("/reports")) return options.failWith.clone();
 
@@ -115,11 +120,11 @@ function memoryStore() {
   return { store, accountMetrics, posts, postMetrics, audience };
 }
 
-function setup(options: FakeOptions & { monetary?: boolean } = {}) {
+function setup(options: FakeOptions & { monetary?: boolean; getAccessToken?: AccessTokenGetter } = {}) {
   const yt = fakeYouTube(options);
   const memory = memoryStore();
   const syncer = createYouTubeSyncer({
-    getAccessToken: async () => "ya29.token",
+    getAccessToken: options.getAccessToken ?? (async () => "ya29.token"),
     store: memory.store,
     monetary: options.monetary ?? false,
     reportTimeZone: "America/Mexico_City",
@@ -232,6 +237,34 @@ describe("YouTube daily sync", () => {
     await expect(setup({ channelsBody: { items: [] } }).run()).rejects.toThrow(/reconecta/);
     const quota = json({ error: { code: 403, errors: [{ reason: "quotaExceeded" }] } }, 403);
     await expect(setup({ failWith: quota }).run()).rejects.toBeInstanceOf(HttpError);
+  });
+});
+
+describe("revoked tokens", () => {
+  it("forces one refresh after a 401 on an unexpired token and continues with the new token", async () => {
+    const requested: (boolean | undefined)[] = [];
+    const t = setup({
+      revokedToken: "revoked",
+      getAccessToken: async (_accountId, options) => {
+        requested.push(options?.forceRefresh);
+        return options?.forceRefresh ? "fresh" : "revoked";
+      },
+    });
+    const result = await t.run();
+    expect(result.done).toBe(true);
+    expect(requested).toEqual([false, true]);
+    expect(t.posts.size).toBe(3);
+  });
+
+  it("fails the account with ReauthRequiredError when the forced refresh is rejected", async () => {
+    const t = setup({
+      revokedToken: "revoked",
+      getAccessToken: async (accountId, options) => {
+        if (options?.forceRefresh) throw new ReauthRequiredError(accountId);
+        return "revoked";
+      },
+    });
+    await expect(t.run()).rejects.toBeInstanceOf(ReauthRequiredError);
   });
 });
 
