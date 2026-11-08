@@ -15,6 +15,8 @@ pnpm dev
 
 La app no arranca si falta una variable requerida (`src/lib/env.ts`).
 
+Para entrar en local sin esperar el correo (el servicio de correo incluido en Supabase manda muy pocos por hora), corre `pnpm auth:link` y abre el enlace que imprime. Es de un solo uso y caduca pronto.
+
 ## Base de datos (sin Docker)
 
 ```bash

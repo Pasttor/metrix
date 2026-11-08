@@ -35,6 +35,7 @@ pnpm test             # Vitest (sin llamadas reales a APIs)
 pnpm db:push          # aplica migraciones nuevas + seed al proyecto de Supabase enlazado
 pnpm db:types         # regenera src/lib/db/types.ts desde el proyecto de Supabase
 pnpm db:config        # copia ALLOWED_EMAIL de .env.local a app_config (lo usa RLS)
+pnpm auth:link        # solo local: imprime un enlace de acceso sin mandar correo
 ```
 
 No se usa Docker ni Supabase local: las migraciones van directo al proyecto en la nube. Las pruebas de base de datos corren las migraciones en PGlite (Postgres en memoria) dentro de Vitest. `db:push` y `db:types` requieren una vez `pnpm exec supabase login` y `pnpm exec supabase link --project-ref <ref>`.
