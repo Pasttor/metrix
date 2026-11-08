@@ -24,6 +24,7 @@ const COLUMNS: PostColumn[] = [
   { key: "shares", label: "Compartidos", format: "count" },
   { key: "post_clicks", label: "Clics", format: "count" },
   { key: "post_video_views", label: "Reproducciones", format: "count" },
+  { key: "post_video_avg_time_watched", label: "Tiempo medio", format: "milliseconds" },
 ];
 const FILTERS: PostFilter[] = [
   { key: "reel", label: "Reels" },
@@ -70,7 +71,7 @@ async function FacebookDashboard({ searchParams }: { searchParams: PageProps<"/f
         </Section>
       </div>
 
-      <Section title="Publicaciones" description="Haz clic en una publicación para abrirla en Facebook.">
+      <Section title="Publicaciones" description="Haz clic en una publicación para ver su crecimiento, sus métricas de video y su curva de retención.">
         {data.posts.length > 0 ? (
           <PostTable
             rows={data.posts}

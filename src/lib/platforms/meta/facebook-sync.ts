@@ -4,10 +4,20 @@ import { ReauthRequiredError, type AccessTokenGetter } from "@/lib/oauth/token-s
 import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
 import type { MetricsStore, PostMetricValue } from "@/lib/sync/metrics-store";
 import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
-import { createMetaClient, isMetaAuthError } from "./client";
-import { fbPostFieldMetrics, fbPostMetricsFor, fbPostToUpsert, FB_PAGE_DAILY_METRICS, pageDailyRows, postInsightRows } from "./facebook-parsers";
+import { createMetaClient, isMetaAuthError, isMetaRejected } from "./client";
+import {
+  FB_PAGE_DAILY_METRICS,
+  FB_VIDEO_INSIGHTS,
+  fbPostFieldMetrics,
+  fbPostMetricsFor,
+  fbPostToUpsert,
+  fbVideoId,
+  pageDailyRows,
+  parseVideoDetails,
+  postInsightRows,
+} from "./facebook-parsers";
 import { fetchInsights, isNoInsights, type InsightsContext } from "./insights";
-import { fbPageProfileSchema, fbPostSchema, type FbPost } from "./schemas";
+import { fbPageProfileSchema, fbPostSchema, fbVideoSchema, type FbPost, type FbVideo } from "./schemas";
 
 /** Page insight days are Pacific-time days. */
 export const FB_INSIGHTS_TIME_ZONE = "America/Los_Angeles";
@@ -23,7 +33,7 @@ export const FB_MAX_HISTORY_DAYS = 730;
 export const FB_RECENT_POST_DAYS = 30;
 
 const POST_FIELDS =
-  "id,message,created_time,permalink_url,full_picture,shares,comments.summary(true).limit(0),reactions.summary(true).limit(0),attachments{media_type,type}";
+  "id,message,created_time,permalink_url,full_picture,shares,comments.summary(true).limit(0),reactions.summary(true).limit(0),attachments{media_type,type,target{id}}";
 const STEPS = ["profile", "page", "posts"] as const;
 
 const cursorSchema = z.object({ step: z.enum(STEPS), before: z.iso.date().optional(), index: z.number().int().min(0).optional() });
@@ -100,6 +110,28 @@ export function createFacebookSyncer(deps: FacebookSyncDeps): Syncer {
       progress: done ? 1 : Math.min(0.99, (STEPS.indexOf(cursor!.step) + stepProgress) / STEPS.length),
     });
 
+    /**
+     * One call per video: its length plus Reels plays/replays and the retention
+     * graph. Plain (non-Reel) videos may reject the Reels counters: then only
+     * the retention graph is asked.
+     */
+    async function videoDetails(videoId: string): Promise<FbVideo | null> {
+      const fields = (metrics: string[]) => `length,video_insights.metric(${metrics.join(",")})`;
+      try {
+        return await graph.get(videoId, { fields: fields(FB_VIDEO_INSIGHTS) }, fbVideoSchema, "meta.fb.video");
+      } catch (error) {
+        if (isNoInsights(error)) return null;
+        if (!isMetaRejected(error)) throw error;
+      }
+      try {
+        return await graph.get(videoId, { fields: fields(["post_video_retention_graph"]) }, fbVideoSchema, "meta.fb.video");
+      } catch (error) {
+        if (!isMetaRejected(error) && !isNoInsights(error)) throw error;
+        warnings.add("algunos videos no tienen curva de retención disponible");
+        return null;
+      }
+    }
+
     /** Page insights for [from, to]; returns the rows inside that range. */
     async function pageDays(from: string, to: string) {
       if (daysBetween(from, to) + 1 > FB_MAX_SPAN_DAYS) throw new RangeError("Page insights span over 90 days");
@@ -171,6 +203,17 @@ export function createFacebookSyncer(deps: FacebookSyncDeps): Syncer {
             // Without a period Meta also returns today's values for some metrics; ask only for lifetime totals.
             const insights = await fetchInsights(ctx, `${post.id}/insights`, { period: "lifetime" }, fbPostMetricsFor(fbPostToUpsert(post).type), "post");
             const rows = postInsightRows(insights).map((row) => ({ postId, ...row }));
+
+            const videoId = fbVideoId(post);
+            const video = videoId ? await videoDetails(videoId) : null;
+            if (video) {
+              const details = parseVideoDetails(video);
+              rows.push(...details.metrics.map((row) => ({ postId, ...row })));
+              await deps.store.savePostDetails?.(postId, {
+                durationSeconds: details.lengthSeconds,
+                ...(details.retention.length > 0 ? { retention: { fetchedAt: now.toISOString(), points: details.retention } } : {}),
+              });
+            }
             if (rows.length > 0) rowsWritten += await deps.store.upsertPostMetrics(reportDate, rows);
           } catch (error) {
             if (!isNoInsights(error)) throw error;

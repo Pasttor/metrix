@@ -16,7 +16,14 @@ export type PostUpsert = {
   permalink: string | null;
   thumbnailUrl: string | null;
   publishedAt: string | null;
-  durationSeconds: number | null;
+  /** Omit to leave the stored duration untouched (it may come from a later call). */
+  durationSeconds?: number | null;
+};
+
+/** Cached retention curve in posts.raw.retention (same shape for every network). */
+export type RetentionCache = {
+  fetchedAt: string;
+  points: { ratio: number; audienceWatchRatio: number; relativePerformance: number | null }[];
 };
 
 export type PostMetricValue = { postId: string; metric: string; value: number };
@@ -31,6 +38,8 @@ export interface MetricsStore {
   upsertAudience(accountId: string, date: string, rows: AudienceValue[]): Promise<number>;
   /** Posts published at or after `since`. */
   listPostsSince(accountId: string, since: Date): Promise<StoredPost[]>;
+  /** Saves details that come from a separate call: video length and the retention curve (merged into raw). */
+  savePostDetails?(postId: string, details: { durationSeconds?: number | null; retention?: RetentionCache }): Promise<void>;
   /** Flags a catalog metric the API now rejects as retired (only the first time). */
   markMetricDeprecated?(platform: string, scope: "account" | "post" | "audience", metric: string): Promise<void>;
 }

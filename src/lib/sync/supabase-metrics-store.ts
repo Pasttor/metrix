@@ -1,5 +1,6 @@
 import "server-only";
 import type { AdminClient } from "@/lib/db/admin";
+import type { Json } from "@/lib/db/types";
 import type { MetricsStore } from "./metrics-store";
 
 const CHUNK = 500;
@@ -48,7 +49,8 @@ export function supabaseMetricsStore(db: AdminClient, now: () => Date = () => ne
               permalink: post.permalink,
               thumbnail_url: post.thumbnailUrl,
               published_at: post.publishedAt,
-              duration_seconds: post.durationSeconds,
+              // Omitted uniformly per call when the syncer does not know it, so it is not reset.
+              ...(post.durationSeconds !== undefined ? { duration_seconds: post.durationSeconds } : {}),
             })),
             { onConflict: "account_id,external_id" },
           )
@@ -92,6 +94,20 @@ export function supabaseMetricsStore(db: AdminClient, now: () => Date = () => ne
         .order("published_at", { ascending: false });
       if (error) fail("posts.listSince", error);
       return data.map((row) => ({ id: row.id, externalId: row.external_id, publishedAt: row.published_at }));
+    },
+
+    async savePostDetails(postId, details) {
+      const update: { duration_seconds?: number | null; raw?: Json } = {};
+      if (details.durationSeconds !== undefined) update.duration_seconds = details.durationSeconds;
+      if (details.retention) {
+        const { data, error } = await db.from("posts").select("raw").eq("id", postId).single();
+        if (error) fail("posts.raw", error);
+        const raw = data.raw && typeof data.raw === "object" && !Array.isArray(data.raw) ? data.raw : {};
+        update.raw = { ...raw, retention: details.retention } as unknown as Json;
+      }
+      if (Object.keys(update).length === 0) return;
+      const { error } = await db.from("posts").update(update).eq("id", postId);
+      if (error) fail("posts.details", error);
     },
 
     async markMetricDeprecated(platform, scope, metric) {

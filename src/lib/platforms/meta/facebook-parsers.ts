@@ -1,6 +1,7 @@
 import { dateInTimeZone } from "@/lib/dates";
 import type { MetricValue, PostType, PostUpsert } from "@/lib/sync/metrics-store";
-import type { FbPost, Insights } from "./schemas";
+import type { RetentionCache } from "@/lib/sync/metrics-store";
+import type { FbPost, FbVideo, Insights } from "./schemas";
 
 /**
  * Page Insights names confirmed against the reference and a live Page (Graph
@@ -17,8 +18,22 @@ export const FB_PAGE_DAILY_METRICS = [
 ];
 
 const POST_METRICS = ["post_total_media_view_unique", "post_media_view", "post_reactions_by_type_total", "post_clicks"];
-/** Video metrics; post_video_avg_time_watched comes in milliseconds. */
-const VIDEO_METRICS = ["post_video_views", "post_video_avg_time_watched"];
+/**
+ * Video metrics (confirmed on live Reels): 3 s views, average and total watch
+ * time (milliseconds), complete views and 15 s views.
+ */
+const VIDEO_METRICS = [
+  "post_video_views",
+  "post_video_avg_time_watched",
+  "post_video_view_time",
+  "post_video_complete_views_organic",
+  "post_video_views_15s",
+];
+
+/** Per-video call: Reels plays, replays and the retention graph (41 points, 0..40 = share of the video). */
+export const FB_VIDEO_INSIGHTS = ["blue_reels_play_count", "fb_reels_total_plays", "fb_reels_replay_count", "post_video_retention_graph"];
+const RETENTION_GRAPH = "post_video_retention_graph";
+const RETENTION_INTERVALS = 40;
 
 export function fbPostType(post: FbPost): PostType {
   if (post.permalink_url?.includes("/reel/")) return "reel";
@@ -41,7 +56,44 @@ export function fbPostToUpsert(post: FbPost): PostUpsert {
     permalink: post.permalink_url ?? null,
     thumbnailUrl: post.full_picture ?? null,
     publishedAt: post.created_time ?? null,
-    durationSeconds: null,
+    // Known only from the per-video call: left out so the stored length is kept.
+    durationSeconds: undefined,
+  };
+}
+
+/** The video behind a video/Reel post (needed for length, plays and retention). */
+export function fbVideoId(post: FbPost): string | null {
+  const attachment = post.attachments?.data[0];
+  return attachment?.media_type === "video" ? (attachment.target?.id ?? null) : null;
+}
+
+/**
+ * `post_video_retention_graph`: keys 0..40 split the video into 40 equal parts
+ * (always 41 points, whatever the length); values are the share still watching.
+ */
+export function retentionFromGraph(graph: unknown): RetentionCache["points"] {
+  if (!graph || typeof graph !== "object" || Array.isArray(graph)) return [];
+  return Object.entries(graph as Record<string, unknown>)
+    .flatMap(([key, value]) => {
+      const index = Number(key);
+      return Number.isInteger(index) && typeof value === "number"
+        ? [{ ratio: index / RETENTION_INTERVALS, audienceWatchRatio: value, relativePerformance: null }]
+        : [];
+    })
+    .sort((a, b) => a.ratio - b.ratio);
+}
+
+/** Length, Reels counters and retention from the per-video call. */
+export function parseVideoDetails(video: FbVideo) {
+  const items = video.video_insights?.data ?? [];
+  const graph = items.find((item) => item.name === RETENTION_GRAPH)?.values?.[0]?.value;
+  return {
+    lengthSeconds: typeof video.length === "number" ? Math.round(video.length) : null,
+    metrics: items.flatMap((item) => {
+      const value = item.values?.[0]?.value;
+      return item.name !== RETENTION_GRAPH && typeof value === "number" ? [{ metric: item.name, value }] : [];
+    }),
+    retention: retentionFromGraph(graph),
   };
 }
 
@@ -81,7 +133,8 @@ export function postInsightRows(insights: Insights): { metric: string; value: nu
     if (hasLifetime.has(item.name) && item.period !== "lifetime") return [];
     const value = item.values?.[0]?.value;
     if (typeof value === "number") return [{ metric: item.name, value }];
-    if (value && typeof value === "object" && !Array.isArray(value)) {
+    // Only reactions come as a breakdown object; graphs (retention) are handled apart.
+    if (item.name === "post_reactions_by_type_total" && value && typeof value === "object" && !Array.isArray(value)) {
       const entries = Object.entries(value as Record<string, unknown>).filter((entry): entry is [string, number] => typeof entry[1] === "number");
       if (entries.length === 0) return [];
       return [

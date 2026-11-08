@@ -1,8 +1,10 @@
 import "server-only";
+import { z } from "zod";
 import { addDays, dateInTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/db/server";
 import { getEnv } from "@/lib/env";
 import type { Range } from "@/lib/range";
+import type { RetentionCache } from "@/lib/sync/metrics-store";
 import { getAccount, latestMetricDate, loadLatestAudience, loadMetricRows, loadPosts, loadPostWithSnapshots, loadRecentSnapshots, type DashboardAccount } from "./data";
 import { buildFollowerDemographics, computeFacebookKpis, computeInstagramKpis, followerSeries, type FollowerDemographics } from "./meta";
 import { periodEndingOn, type Period } from "./period";
@@ -23,7 +25,16 @@ export const IG_TYPE_LABELS: Record<string, string> = {
 export const FB_TYPE_LABELS: Record<string, string> = { reel: "Reel", video: "Video", image: "Foto", carousel: "Álbum", post: "Publicación" };
 
 const IG_POST_METRICS = ["views", "reach", "likes", "comments", "saved", "shares", "total_interactions"];
-const FB_POST_METRICS = ["post_media_view", "post_total_media_view_unique", "reactions", "comments", "shares", "post_clicks", "post_video_views"];
+const FB_POST_METRICS = [
+  "post_media_view",
+  "post_total_media_view_unique",
+  "reactions",
+  "comments",
+  "shares",
+  "post_clicks",
+  "post_video_views",
+  "post_video_avg_time_watched",
+];
 
 export type MetaDashboard = {
   account: DashboardAccount;
@@ -113,9 +124,8 @@ export async function getFacebookDashboard(range: Range): Promise<MetaDashboard 
         subtitle: FB_TYPE_LABELS[post.type] ?? post.type,
         thumbnailUrl: post.thumbnailUrl,
         publishedAt: post.publishedAt,
-        // Facebook posts open on Facebook; the table already shows every metric.
-        href: post.permalink,
-        external: true,
+        href: `/facebook/posts/${post.id}`,
+        external: false,
         values: Object.fromEntries(FB_POST_METRICS.map((metric) => [metric, get(metric)])),
       };
     }),
@@ -150,5 +160,36 @@ export async function getInstagramPostDetail(postId: string): Promise<InstagramP
     publishedAt: post.publishedAt,
     latest: Object.fromEntries(latest),
     growth: viewGrowth(snapshots.filter((row) => row.metric === "views")),
+  };
+}
+
+export type FacebookPostDetail = InstagramPostDetail & {
+  durationSeconds: number | null;
+  /** From posts.raw.retention: 41 points, each 1/40 of the video. */
+  retention: RetentionCache["points"];
+};
+
+const retentionSchema = z.object({
+  points: z.array(z.object({ ratio: z.number(), audienceWatchRatio: z.number(), relativePerformance: z.number().nullable().optional() })),
+});
+
+export async function getFacebookPostDetail(postId: string): Promise<FacebookPostDetail | null> {
+  const found = await loadPostWithSnapshots(await createClient(), postId, "facebook");
+  if (!found) return null;
+  const { post, snapshots, raw } = found;
+  const latest = latestValuesByPost(snapshots).get(post.id) ?? new Map<string, number>();
+  const cached = retentionSchema.safeParse(raw && typeof raw === "object" && !Array.isArray(raw) ? raw.retention : null);
+  return {
+    id: post.id,
+    title: postTitle(post),
+    caption: post.caption,
+    type: post.type,
+    permalink: post.permalink,
+    thumbnailUrl: post.thumbnailUrl,
+    publishedAt: post.publishedAt,
+    durationSeconds: post.durationSeconds,
+    latest: Object.fromEntries(latest),
+    growth: viewGrowth(snapshots.filter((row) => row.metric === "post_media_view")),
+    retention: cached.success ? cached.data.points.map((point) => ({ ...point, relativePerformance: point.relativePerformance ?? null })) : [],
   };
 }

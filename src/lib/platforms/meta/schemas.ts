@@ -93,6 +93,17 @@ export const fbPostSchema = z.object({
   shares: z.object({ count: z.number() }).optional(),
   comments: summarySchema.optional(),
   reactions: summarySchema.optional(),
-  attachments: z.object({ data: z.array(z.object({ media_type: z.string().optional(), type: z.string().optional() })) }).optional(),
+  attachments: z
+    .object({
+      data: z.array(z.object({ media_type: z.string().optional(), type: z.string().optional(), target: z.object({ id: z.string() }).optional() })),
+    })
+    .optional(),
 });
 export type FbPost = z.infer<typeof fbPostSchema>;
+
+/** `GET /{video-id}?fields=length,video_insights.metric(...)`: length in seconds plus Reels insights. */
+export const fbVideoSchema = z.object({
+  length: z.number().optional(),
+  video_insights: insightsSchema.optional(),
+});
+export type FbVideo = z.infer<typeof fbVideoSchema>;

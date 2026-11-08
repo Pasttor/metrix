@@ -1,6 +1,7 @@
 import "server-only";
 import { addDays } from "@/lib/dates";
 import { createClient } from "@/lib/db/server";
+import type { Json } from "@/lib/db/types";
 import type { AccountPlatform } from "@/lib/oauth/types";
 import type { MetricRow } from "./series";
 import type { AudienceRecord, PostRecord, SnapshotRecord } from "./youtube-content";
@@ -154,13 +155,13 @@ export async function loadLatestAudience(db: Db, accountId: string): Promise<{ d
   return { date: latest.date, records: data.map((row) => ({ ...row, value: Number(row.value) })) };
 }
 
-export type PostWithSnapshots = { post: PostRecord; snapshots: SnapshotRecord[] };
+export type PostWithSnapshots = { post: PostRecord; snapshots: SnapshotRecord[]; raw: Json };
 
 /** One post of the given platform (RLS-checked) and every snapshot it has. */
 export async function loadPostWithSnapshots(db: Db, postId: string, platform: AccountPlatform): Promise<PostWithSnapshots | null> {
   const { data: post, error } = await db
     .from("posts")
-    .select("id, type, caption, permalink, thumbnail_url, published_at, duration_seconds, accounts!inner(platform)")
+    .select("id, type, caption, permalink, thumbnail_url, published_at, duration_seconds, raw, accounts!inner(platform)")
     .eq("id", postId)
     .eq("accounts.platform", platform)
     .maybeSingle();
@@ -181,5 +182,6 @@ export async function loadPostWithSnapshots(db: Db, postId: string, platform: Ac
       durationSeconds: post.duration_seconds,
     },
     snapshots: snapshots.map((row) => ({ postId, capturedOn: row.captured_on, metric: row.metric, value: Number(row.value) })),
+    raw: post.raw,
   };
 }

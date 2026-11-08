@@ -5,11 +5,12 @@ import page from "../../../../tests/fixtures/meta/fb-page.json";
 import pageInsights from "../../../../tests/fixtures/meta/fb-page-insights-3days.json";
 import postInsights from "../../../../tests/fixtures/meta/fb-post-insights-video.json";
 import posts from "../../../../tests/fixtures/meta/fb-published-posts.json";
+import videoDetails from "../../../../tests/fixtures/meta/fb-video-details.json";
 import type { Json } from "@/lib/db/types";
 import { ReauthRequiredError } from "@/lib/oauth/token-store";
 import type { MetricsStore, PostUpsert } from "@/lib/sync/metrics-store";
 import type { AccountSyncInput, SyncAccount } from "@/lib/sync/types";
-import { fbPostType, pageDailyRows, postInsightRows } from "./facebook-parsers";
+import { fbPostType, pageDailyRows, postInsightRows, retentionFromGraph } from "./facebook-parsers";
 import { createFacebookSyncer, FB_BLOCK_DAYS } from "./facebook-sync";
 import { fbPostSchema, insightsSchema } from "./schemas";
 
@@ -48,6 +49,7 @@ function fakeGraph(options: Options = {}) {
       });
       return json(params.get("since") && until - since <= 4 * 86_400_000 ? { data: pageInsights.data.filter((d) => metrics.includes(d.name)) } : { data });
     }
+    if (path === "3001") return json(videoDetails);
     if (path.endsWith("/insights")) return json({ data: postInsights.data.filter((d) => params.get("metric")!.split(",").includes(d.name)) });
     throw new Error(`unexpected fetch ${path}`);
   };
@@ -59,6 +61,7 @@ function memoryStore() {
   const posts = new Map<string, PostUpsert>();
   const postMetrics = new Map<string, number>();
   const deprecated: string[] = [];
+  const details = new Map<string, { durationSeconds?: number | null; retention?: { points: { ratio: number; audienceWatchRatio: number }[] } }>();
   const store: MetricsStore = {
     async upsertAccountMetrics(_id, rows) {
       for (const row of rows) accountMetrics.set(`${row.date}|${row.metric}`, row.value);
@@ -82,11 +85,14 @@ function memoryStore() {
     async listPostsSince() {
       return [];
     },
+    async savePostDetails(postId, value) {
+      details.set(postId, value);
+    },
     async markMetricDeprecated(platform, scope, metric) {
       deprecated.push(`${platform}/${scope}/${metric}`);
     },
   };
-  return { store, accountMetrics, posts, postMetrics, deprecated };
+  return { store, accountMetrics, posts, postMetrics, deprecated, details };
 }
 
 function setup(options: Options = {}) {
@@ -134,6 +140,24 @@ describe("Facebook daily sync", () => {
     expect(t.postMetrics.get("post-1000000000000001_2002|2026-11-08|post_reactions_by_type_total.like")).toBe(1);
     // Daily: no insights for posts older than 30 days.
     expect(t.calls.some((url) => url.pathname.includes("_2003/insights"))).toBe(false);
+  });
+
+  it("saves video length, Reels plays and the retention curve from one call per video", async () => {
+    const t = setup();
+    await t.run();
+    const videoCall = t.calls.find((url) => url.pathname.endsWith("/3001"))!;
+    expect(videoCall.searchParams.get("fields")).toBe(
+      "length,video_insights.metric(blue_reels_play_count,fb_reels_total_plays,fb_reels_replay_count,post_video_retention_graph)",
+    );
+    expect(t.postMetrics.get("post-1000000000000001_2002|2026-11-08|fb_reels_total_plays")).toBe(244);
+    expect(t.postMetrics.get("post-1000000000000001_2002|2026-11-08|fb_reels_replay_count")).toBe(22);
+    expect(t.postMetrics.has("post-1000000000000001_2002|2026-11-08|post_video_retention_graph")).toBe(false);
+    const saved = t.details.get("post-1000000000000001_2002")!;
+    expect(saved.durationSeconds).toBe(44);
+    expect(saved.retention?.points).toHaveLength(41);
+    expect(saved.retention?.points[4]).toEqual({ ratio: 0.1, audienceWatchRatio: 0.5217, relativePerformance: null });
+    // Posts are upserted without a duration so the stored length is not reset.
+    expect(t.posts.get("1000000000000001_2002")?.durationSeconds).toBeUndefined();
   });
 
   it("refreshes insights of every post on Mondays", async () => {
@@ -197,6 +221,15 @@ describe("Facebook parsers", () => {
   it("assigns each value to the day that ends at end_time", () => {
     const rows = pageDailyRows(insightsSchema.parse(pageInsights), "America/Los_Angeles");
     expect(rows.filter((row) => row.metric === "page_media_view").map((row) => row.date)).toEqual(["2026-11-05", "2026-11-06", "2026-11-07"]);
+  });
+
+  it("reads the retention graph as 40 equal parts of the video, ignoring bad keys", () => {
+    expect(retentionFromGraph({ "40": 0.2, "0": 1, "20": 0.5, x: 3 })).toEqual([
+      { ratio: 0, audienceWatchRatio: 1, relativePerformance: null },
+      { ratio: 0.5, audienceWatchRatio: 0.5, relativePerformance: null },
+      { ratio: 1, audienceWatchRatio: 0.2, relativePerformance: null },
+    ]);
+    expect(retentionFromGraph(null)).toEqual([]);
   });
 
   it("keeps the lifetime value when a metric also comes back per day", () => {

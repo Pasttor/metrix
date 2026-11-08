@@ -55,7 +55,10 @@
         "data": [
           {
             "media_type": "video",
-            "type": "video_inline"
+            "type": "video_inline",
+            "target": {
+              "id": "3001"
+            }
           }
         ]
       }
