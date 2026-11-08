@@ -1,3 +1,5 @@
+import type { ValueFormat } from "@/lib/metrics/posts";
+
 const DEFAULT_TIMEZONE = "America/Mexico_City";
 const LOCALE = "es-MX";
 
@@ -68,4 +70,19 @@ export function formatChange(change: number, kind: "relative" | "points"): strin
   const magnitude = Math.abs(kind === "relative" ? change * 100 : change);
   const text = magnitude.toLocaleString(LOCALE, { maximumFractionDigits: 1, minimumFractionDigits: magnitude < 10 ? 1 : 0 });
   return kind === "relative" ? `${sign}${text} %` : `${sign}${text} pts`;
+}
+
+/** A metric value in the given format; missing values show as "—". */
+export function formatValue(value: number | null, format: ValueFormat): string {
+  if (value === null) return NO_DATA;
+  switch (format) {
+    case "percent":
+      return formatPercent(value);
+    case "duration":
+      return formatDuration(value);
+    case "milliseconds":
+      return formatDuration(value / 1000);
+    default:
+      return formatNumber(value);
+  }
 }

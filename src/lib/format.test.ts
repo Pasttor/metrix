@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatChange, formatDuration, formatHours, formatNumber, formatPercent, formatShortDate, NO_DATA } from "./format";
+import { formatChange, formatDuration, formatHours, formatNumber, formatPercent, formatShortDate, formatValue, NO_DATA } from "./format";
 
 describe("format", () => {
   it("shows missing values as a dash, never as zero", () => {
@@ -21,6 +21,12 @@ describe("format", () => {
   it("formats calendar dates without shifting the day", () => {
     expect(formatShortDate("2026-11-06")).toBe("6 nov");
     expect(formatShortDate("2026-01-01", true)).toBe("1 ene 2026");
+  });
+
+  it("formats values by kind, including milliseconds as a duration", () => {
+    expect(formatValue(13432, "milliseconds")).toBe("0:13");
+    expect(formatValue(44.7, "percent")).toBe("44.7 %");
+    expect(formatValue(null, "count")).toBe(NO_DATA);
   });
 
   it("formats changes with sign and kind", () => {

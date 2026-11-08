@@ -1,16 +1,17 @@
 import { addDays } from "@/lib/dates";
 import { datesOf, relativeChange, type Period } from "./period";
+import { MetricIndex, type MetricRow, type SeriesPoint } from "./series";
+
+export type { MetricRow, SeriesPoint } from "./series";
 
 /**
  * YouTube dashboard calculations over rows read from the database. Missing
  * data stays null (never zero) so the UI can say "sin datos".
  */
 
-export type MetricRow = { date: string; metric: string; value: number };
-
 export type KpiFormat = "count" | "hours" | "duration" | "percent";
 export type Kpi = {
-  key: "netSubscribers" | "views" | "watchHours" | "avgViewDuration" | "engagementRate";
+  key: string;
   label: string;
   format: KpiFormat;
   value: number | null;
@@ -19,51 +20,6 @@ export type Kpi = {
   change: number | null;
   changeKind: "relative" | "points";
 };
-
-export type SeriesPoint = { date: string; value: number | null };
-
-class MetricIndex {
-  private readonly byMetric = new Map<string, Map<string, number>>();
-
-  constructor(rows: MetricRow[]) {
-    for (const row of rows) {
-      let byDate = this.byMetric.get(row.metric);
-      if (!byDate) this.byMetric.set(row.metric, (byDate = new Map()));
-      byDate.set(row.date, row.value);
-    }
-  }
-
-  get(metric: string, date: string): number | null {
-    return this.byMetric.get(metric)?.get(date) ?? null;
-  }
-
-  dates(metric: string): string[] {
-    return [...(this.byMetric.get(metric)?.keys() ?? [])].sort();
-  }
-
-  /** Sum over [from, to], or null when no day in the range has the metric. */
-  sum(metric: string, from: string, to: string): number | null {
-    let total: number | null = null;
-    for (const [date, value] of this.byMetric.get(metric) ?? []) {
-      if (date >= from && date <= to) total = (total ?? 0) + value;
-    }
-    return total;
-  }
-
-  /** Average of `metric` weighted by `weight` per day (e.g. view duration by views). */
-  weightedAverage(metric: string, weight: string, from: string, to: string): number | null {
-    let numerator = 0;
-    let denominator = 0;
-    for (const [date, value] of this.byMetric.get(metric) ?? []) {
-      if (date < from || date > to) continue;
-      const w = this.get(weight, date);
-      if (w === null) continue;
-      numerator += value * w;
-      denominator += w;
-    }
-    return denominator === 0 ? null : numerator / denominator;
-  }
-}
 
 /** Last day with channel analytics (they arrive 2–3 days late), so periods compare full days. */
 export function latestAnalyticsDate(rows: MetricRow[]): string | null {
@@ -121,10 +77,7 @@ export function computeKpis(rows: MetricRow[], period: Period): Kpi[] {
   ];
 }
 
-export function dailySeries(rows: MetricRow[], metric: string, period: Pick<Period, "start" | "end">): SeriesPoint[] {
-  const index = new MetricIndex(rows);
-  return datesOf(period.start, period.end).map((date) => ({ date, value: index.get(metric, date) }));
-}
+export { dailySeries } from "./series";
 
 export type SubscriberPoint = SeriesPoint & { estimated: boolean };
 

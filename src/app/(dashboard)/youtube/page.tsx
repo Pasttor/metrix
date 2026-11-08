@@ -2,19 +2,47 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { DashboardSkeleton } from "@/components/metrics/dashboard-skeleton";
 import { KpiCards } from "@/components/metrics/kpi-cards";
 import { Section } from "@/components/metrics/section";
 import { ShareBars } from "@/components/metrics/share-bars";
 import { TrendChart } from "@/components/metrics/trend-chart";
 import { AgeGenderChart } from "@/components/youtube/age-gender-chart";
-import { VideoTable } from "@/components/youtube/video-table";
-import { formatShortDate } from "@/lib/format";
+import { PostTable } from "@/components/metrics/post-table";
+import { formatDuration, formatShortDate } from "@/lib/format";
+import type { PostColumn, PostFilter, PostTableRow } from "@/lib/metrics/posts";
+import type { VideoRow } from "@/lib/metrics/youtube-content";
 import { getYouTubeAccount, getYouTubeAudience, getYouTubeOverview, getYouTubeVideos } from "@/lib/metrics/youtube-data";
 import { parseRange, RANGE_PARAM } from "@/lib/range";
 
 export const metadata: Metadata = { title: "YouTube · Metrix" };
 
 const CONNECTIONS = { href: "/settings/connections", label: "Ir a Configuración" };
+
+const VIDEO_COLUMNS: PostColumn[] = [
+  { key: "views", label: "Vistas", format: "count" },
+  { key: "likes", label: "Me gusta", format: "count" },
+  { key: "comments", label: "Comentarios", format: "count" },
+  { key: "engagement", label: "Engagement", format: "percent" },
+];
+const VIDEO_FILTERS: PostFilter[] = [
+  { key: "video", label: "Videos" },
+  { key: "short", label: "Shorts" },
+];
+
+function toTableRow(video: VideoRow): PostTableRow {
+  return {
+    id: video.id,
+    title: video.title,
+    type: video.type,
+    subtitle: `${video.type === "short" ? "Short" : "Video"} · ${formatDuration(video.durationSeconds)}`,
+    thumbnailUrl: video.thumbnailUrl,
+    publishedAt: video.publishedAt,
+    href: `/youtube/videos/${video.id}`,
+    external: false,
+    values: { views: video.views, likes: video.likes, comments: video.comments, engagement: video.engagement },
+  };
+}
 
 async function YouTubeDashboard({ searchParams }: { searchParams: PageProps<"/youtube">["searchParams"] }) {
   const range = parseRange((await searchParams)[RANGE_PARAM]);
@@ -70,7 +98,17 @@ async function YouTubeDashboard({ searchParams }: { searchParams: PageProps<"/yo
       </div>
 
       <Section title="Videos" description="Haz clic en un video para ver su crecimiento y su curva de retención.">
-        {videos.length > 0 ? <VideoTable videos={videos} /> : <p className="text-sm text-muted-foreground">Sin videos todavía.</p>}
+        {videos.length > 0 ? (
+          <PostTable
+            rows={videos.map(toTableRow)}
+            columns={VIDEO_COLUMNS}
+            filters={VIDEO_FILTERS}
+            itemLabel="videos"
+            note="Cifras acumuladas al último sync. Se cuenta como Short todo video de 3 minutos o menos. Engagement = (me gusta + comentarios) / vistas."
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">Sin videos todavía.</p>
+        )}
       </Section>
 
       <div className="flex flex-col gap-1">
@@ -95,23 +133,6 @@ async function YouTubeDashboard({ searchParams }: { searchParams: PageProps<"/yo
           <ShareBars rows={audience.trafficSources} />
         </Section>
       </div>
-    </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="flex flex-col gap-6" aria-hidden>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
-        ))}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="h-72 animate-pulse rounded-xl bg-muted" />
-        <div className="h-72 animate-pulse rounded-xl bg-muted" />
-      </div>
-      <div className="h-80 animate-pulse rounded-xl bg-muted" />
     </div>
   );
 }

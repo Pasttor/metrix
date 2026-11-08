@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { z } from "zod";
 import { Section } from "@/components/metrics/section";
+import { Stat } from "@/components/metrics/stat";
 import { RetentionChart, ViewGrowthChart } from "@/components/youtube/video-charts";
 import { formatDate, formatDuration, formatHours, formatNumber, formatPercent } from "@/lib/format";
 import { getVideoDetail } from "@/lib/metrics/youtube-data";
@@ -14,15 +15,6 @@ import { parseRange, RANGE_PARAM, withRange } from "@/lib/range";
 export const metadata: Metadata = { title: "Video · YouTube · Metrix" };
 
 type Props = PageProps<"/youtube/videos/[postId]">;
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-xl border bg-card p-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-lg font-semibold tabular-nums">{value}</span>
-    </div>
-  );
-}
 
 async function Retention({ postId, durationSeconds }: { postId: string; durationSeconds: number | null }) {
   const result = await loadRetention(postId);
