@@ -1,0 +1,17 @@
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "fixture",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "id": "vidOld000001",
+      "snippet": {
+        "publishedAt": "2024-01-10T12:00:00Z",
+        "title": "Primer video",
+        "thumbnails": { "high": { "url": "https://i.ytimg.com/vi/vidOld000001/hqdefault.jpg" } }
+      },
+      "contentDetails": { "duration": "PT3M" },
+      "statistics": { "viewCount": "900", "likeCount": "40", "commentCount": "3" }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "fixture",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "id": "vidLong00001",
+      "snippet": {
+        "publishedAt": "2026-11-02T17:00:00Z",
+        "channelId": "UCfixture000000000000000",
+        "title": "Por qué quebró la empresa X",
+        "description": "Descripción larga",
+        "thumbnails": {
+          "default": { "url": "https://i.ytimg.com/vi/vidLong00001/default.jpg", "width": 120, "height": 90 },
+          "high": { "url": "https://i.ytimg.com/vi/vidLong00001/hqdefault.jpg", "width": 480, "height": 360 }
+        },
+        "liveBroadcastContent": "none"
+      },
+      "contentDetails": { "duration": "PT12M5S", "dimension": "2d", "definition": "hd" },
+      "statistics": { "viewCount": "15230", "likeCount": "812", "favoriteCount": "0", "commentCount": "97" }
+    },
+    {
+      "kind": "youtube#video",
+      "id": "vidShort0001",
+      "snippet": {
+        "publishedAt": "2026-10-20T15:30:00Z",
+        "channelId": "UCfixture000000000000000",
+        "title": "La quiebra en 60 segundos",
+        "thumbnails": { "default": { "url": "https://i.ytimg.com/vi/vidShort0001/default.jpg" } },
+        "liveBroadcastContent": "none"
+      },
+      "contentDetails": { "duration": "PT58S" },
+      "statistics": { "viewCount": "40210", "favoriteCount": "0", "commentCount": "12" }
+    }
+  ]
+}

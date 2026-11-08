@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Unknown identifier (shares) given in field parameters.metrics.",
+    "errors": [{ "message": "Unknown identifier (shares) given in field parameters.metrics.", "domain": "global", "reason": "badRequest" }]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "youtubeAnalytics#resultTable",
+  "columnHeaders": [
+    { "name": "video", "columnType": "DIMENSION", "dataType": "STRING" },
+    { "name": "estimatedMinutesWatched", "columnType": "METRIC", "dataType": "INTEGER" },
+    { "name": "averageViewDuration", "columnType": "METRIC", "dataType": "INTEGER" },
+    { "name": "averageViewPercentage", "columnType": "METRIC", "dataType": "FLOAT" }
+  ],
+  "rows": [
+    ["vidLong00001", 61200, 241, 33.2],
+    ["vidShort0001", 30100, 45, 77.6]
+  ]
+}

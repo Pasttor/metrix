@@ -1,0 +1,7 @@
+{
+  "kind": "youtubeAnalytics#resultTable",
+  "columnHeaders": [
+    { "name": "day", "columnType": "DIMENSION", "dataType": "STRING" },
+    { "name": "views", "columnType": "METRIC", "dataType": "INTEGER" }
+  ]
+}

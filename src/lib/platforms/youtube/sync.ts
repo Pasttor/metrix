@@ -1,0 +1,260 @@
+import { z } from "zod";
+import { addDays, dateInTimeZone, daysBetween, isMonday, minDate } from "@/lib/dates";
+import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
+import { HttpError } from "@/lib/platforms/http";
+import type { MetricsStore } from "@/lib/sync/metrics-store";
+import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
+import { createYouTubeClient, VIDEOS_PER_REQUEST, type AnalyticsQuery, type YouTubeClient } from "./client";
+import {
+  audienceFromReport,
+  channelSnapshotMetrics,
+  dailyMetricsFromReport,
+  videoMetricsFromReport,
+  videoStatMetrics,
+  videoToPost,
+  type AudienceRow,
+} from "./parsers";
+import type { AnalyticsReport, Channel } from "./schemas";
+
+/** YouTube Analytics reports days in Pacific time. */
+export const ANALYTICS_TIME_ZONE = "America/Los_Angeles";
+
+export const CHANNEL_DAILY_METRICS = [
+  "views",
+  "estimatedMinutesWatched",
+  "averageViewDuration",
+  "averageViewPercentage",
+  "subscribersGained",
+  "subscribersLost",
+  "likes",
+  "comments",
+  "shares",
+];
+export const REVENUE_METRICS = ["estimatedRevenue"];
+export const VIDEO_LIFETIME_METRICS = ["estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage"];
+
+/** Analytics data arrives late and gets adjusted: re-request this many days each run. */
+export const DAILY_LOOKBACK_DAYS = 7;
+export const BACKFILL_CHUNK_DAYS = 365;
+export const AUDIENCE_WINDOW_DAYS = 28;
+export const RECENT_VIDEO_DAYS = 90;
+const YOUTUBE_LAUNCH = "2005-04-23";
+
+const STEPS = ["snapshot", "analytics", "videos", "weekly"] as const;
+type Step = (typeof STEPS)[number];
+
+const cursorSchema = z.object({
+  step: z.enum(STEPS),
+  from: z.iso.date().optional(),
+  pageToken: z.string().optional(),
+});
+type Cursor = z.infer<typeof cursorSchema>;
+
+export type YouTubeSyncDeps = {
+  getAccessToken: (accountId: string) => Promise<string>;
+  store: MetricsStore;
+  monetary: boolean;
+  reportTimeZone: string;
+  fetch?: FetchFn;
+  retry?: RetryOptions;
+};
+
+/**
+ * Daily: channel snapshot, last 7 days of channel analytics, every upload with
+ * its public counters and, on Mondays, audience + lifetime stats of recent videos.
+ * Backfill: channel analytics since creation in 1-year blocks, then the same.
+ */
+export function stepsFor(job: AccountSyncInput["job"], reportDate: string): Step[] {
+  if (job === "backfill") return ["analytics", "snapshot", "videos", "weekly"];
+  return isMonday(reportDate) ? ["snapshot", "analytics", "videos", "weekly"] : ["snapshot", "analytics", "videos"];
+}
+
+function isRejectedQuery(error: unknown): error is HttpError {
+  return error instanceof HttpError && error.status === 400;
+}
+
+export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
+  return {
+    async syncAccount({ account, job, cursor: rawCursor, shouldStop, now }: AccountSyncInput): Promise<AccountSyncResult> {
+      const client = createYouTubeClient({
+        accessToken: await deps.getAccessToken(account.id),
+        fetch: deps.fetch,
+        retry: deps.retry,
+      });
+      const warnings = new Set<string>();
+      let rowsWritten = 0;
+
+      const channel = (await client.listMyChannels()).find((item) => item.id === account.externalId);
+      if (!channel) throw new Error("El canal conectado ya no está disponible con este acceso; reconecta YouTube");
+
+      const reportDate = dateInTimeZone(now, deps.reportTimeZone);
+      const analyticsEnd = dateInTimeZone(now, ANALYTICS_TIME_ZONE);
+      const createdOn = channel.snippet.publishedAt
+        ? dateInTimeZone(new Date(channel.snippet.publishedAt), ANALYTICS_TIME_ZONE)
+        : YOUTUBE_LAUNCH;
+
+      const steps = stepsFor(job, reportDate);
+      const parsed = cursorSchema.safeParse(rawCursor);
+      const resume: Cursor | null = parsed.success && steps.includes(parsed.data.step) ? parsed.data : null;
+      const firstStep = resume ? steps.indexOf(resume.step) : 0;
+
+      const result = (done: boolean, cursor?: Cursor, stepProgress = 0): AccountSyncResult => ({
+        done,
+        ...(cursor ? { cursor } : {}),
+        rowsWritten,
+        warnings: [...warnings],
+        quotaUnits: client.quotaUnits,
+        progress: done ? 1 : Math.min(0.99, (steps.indexOf(cursor!.step) + stepProgress) / steps.length),
+      });
+
+      /**
+       * Runs a report; if the API rejects the metric set (400), retries metric by
+       * metric so one invalid or retired metric only becomes a warning.
+       */
+      async function queryMetrics<T>(query: Omit<AnalyticsQuery, "metrics">, metrics: string[], parse: (r: AnalyticsReport) => T[]) {
+        try {
+          return parse(await client.queryReport({ ...query, metrics }));
+        } catch (error) {
+          if (!isRejectedQuery(error)) throw error;
+          if (metrics.length === 1) {
+            warnings.add(`métrica ${metrics[0]} rechazada por YouTube Analytics (${error.code || "400"})`);
+            return [];
+          }
+        }
+        const rows: T[] = [];
+        for (const metric of metrics) {
+          // A sort by another metric of the set would be rejected on its own.
+          const sortMetric = query.sort?.replace(/^-/, "");
+          const sort = sortMetric && metrics.includes(sortMetric) ? query.sort!.replace(sortMetric, metric) : query.sort;
+          rows.push(...(await queryMetrics({ ...query, sort }, [metric], parse)));
+        }
+        return rows;
+      }
+
+      async function syncChannelDays(startDate: string, endDate: string) {
+        const query = { startDate, endDate, dimensions: ["day"], sort: "day" };
+        const rows = await queryMetrics(query, CHANNEL_DAILY_METRICS, dailyMetricsFromReport);
+        if (deps.monetary) rows.push(...(await queryMetrics(query, REVENUE_METRICS, dailyMetricsFromReport)));
+        if (rows.length > 0) rowsWritten += await deps.store.upsertAccountMetrics(account.id, rows);
+      }
+
+      for (let index = firstStep; index < steps.length; index++) {
+        const step = steps[index];
+        const resumeHere = resume && index === firstStep ? resume : null;
+        if (index > firstStep && shouldStop()) return result(false, { step });
+
+        if (step === "snapshot") {
+          const rows = channelSnapshotMetrics(channel, reportDate);
+          if (rows.length > 0) rowsWritten += await deps.store.upsertAccountMetrics(account.id, rows);
+        }
+
+        if (step === "analytics") {
+          if (job === "daily") {
+            await syncChannelDays(addDays(analyticsEnd, -DAILY_LOOKBACK_DAYS), analyticsEnd);
+          } else {
+            const totalDays = Math.max(1, daysBetween(createdOn, analyticsEnd) + 1);
+            let from = resumeHere?.from ?? createdOn;
+            while (from <= analyticsEnd) {
+              const to = minDate(addDays(from, BACKFILL_CHUNK_DAYS - 1), analyticsEnd);
+              await syncChannelDays(from, to);
+              from = addDays(to, 1);
+              if (from <= analyticsEnd && shouldStop()) {
+                return result(false, { step, from }, daysBetween(createdOn, from) / totalDays);
+              }
+            }
+          }
+        }
+
+        if (step === "videos") {
+          const pageToken = await syncUploads(client, channel, resumeHere?.pageToken);
+          if (pageToken) return result(false, { step, pageToken }, 0.5);
+        }
+
+        if (step === "weekly") {
+          await syncAudience();
+          await syncRecentVideos();
+        }
+      }
+
+      return result(true);
+
+      /** Pages through the uploads playlist; returns a page token if it had to stop. */
+      async function syncUploads(yt: YouTubeClient, ch: Channel, startToken?: string): Promise<string | undefined> {
+        const uploads = ch.contentDetails?.relatedPlaylists?.uploads;
+        if (!uploads) {
+          warnings.add("el canal no expone su lista de subidas");
+          return undefined;
+        }
+        let pageToken = startToken;
+        do {
+          let page;
+          try {
+            page = await yt.listPlaylistVideoIds(uploads, pageToken);
+          } catch (error) {
+            // A channel without uploads can answer 404 playlistNotFound.
+            if (error instanceof HttpError && error.status === 404) return undefined;
+            throw error;
+          }
+          const videos = await yt.listVideos(page.videoIds);
+          if (videos.length > 0) {
+            const ids = await deps.store.upsertPosts(account.id, videos.map(videoToPost));
+            rowsWritten += ids.size;
+            const metrics = videos.flatMap(videoStatMetrics).flatMap((row) => {
+              const postId = ids.get(row.externalId);
+              return postId ? [{ postId, metric: row.metric, value: row.value }] : [];
+            });
+            if (metrics.length > 0) rowsWritten += await deps.store.upsertPostMetrics(reportDate, metrics);
+          }
+          pageToken = page.nextPageToken;
+          if (pageToken && shouldStop()) return pageToken;
+        } while (pageToken);
+        return undefined;
+      }
+
+      async function syncAudience() {
+        const startDate = addDays(analyticsEnd, -(AUDIENCE_WINDOW_DAYS - 1));
+        const breakdowns: { dimension: AudienceRow["dimension"]; columns: string[]; metric: string; sort?: string }[] = [
+          { dimension: "age_gender", columns: ["ageGroup", "gender"], metric: "viewerPercentage" },
+          { dimension: "country", columns: ["country"], metric: "views", sort: "-views" },
+          { dimension: "device", columns: ["deviceType"], metric: "views" },
+          { dimension: "traffic_source", columns: ["insightTrafficSourceType"], metric: "views" },
+        ];
+        const rows: AudienceRow[] = [];
+        for (const breakdown of breakdowns) {
+          const query = { startDate, endDate: analyticsEnd, dimensions: breakdown.columns, sort: breakdown.sort };
+          rows.push(
+            ...(await queryMetrics(query, [breakdown.metric], (report) =>
+              audienceFromReport(report, breakdown.dimension, breakdown.columns, breakdown.metric),
+            )),
+          );
+        }
+        if (rows.length > 0) rowsWritten += await deps.store.upsertAudience(account.id, reportDate, rows);
+      }
+
+      async function syncRecentVideos() {
+        const since = new Date(now.getTime() - RECENT_VIDEO_DAYS * 86_400_000);
+        const posts = await deps.store.listPostsSince(account.id, since);
+        for (let i = 0; i < posts.length; i += VIDEOS_PER_REQUEST) {
+          const batch = posts.slice(i, i + VIDEOS_PER_REQUEST);
+          const postIds = new Map(batch.map((post) => [post.externalId, post.id]));
+          const earliest = batch
+            .map((post) => (post.publishedAt ? dateInTimeZone(new Date(post.publishedAt), ANALYTICS_TIME_ZONE) : createdOn))
+            .reduce(minDate);
+          const query = {
+            startDate: earliest,
+            endDate: analyticsEnd,
+            dimensions: ["video"],
+            filters: `video==${batch.map((post) => post.externalId).join(",")}`,
+            sort: `-${VIDEO_LIFETIME_METRICS[0]}`,
+            maxResults: batch.length,
+          };
+          const metrics = (await queryMetrics(query, VIDEO_LIFETIME_METRICS, videoMetricsFromReport)).flatMap((row) => {
+            const postId = postIds.get(row.externalId);
+            return postId ? [{ postId, metric: row.metric, value: row.value }] : [];
+          });
+          if (metrics.length > 0) rowsWritten += await deps.store.upsertPostMetrics(reportDate, metrics);
+        }
+      }
+    },
+  };
+}

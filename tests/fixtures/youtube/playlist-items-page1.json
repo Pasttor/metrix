@@ -1,0 +1,10 @@
+{
+  "kind": "youtube#playlistItemListResponse",
+  "etag": "fixture",
+  "nextPageToken": "PAGE2",
+  "pageInfo": { "totalResults": 3, "resultsPerPage": 2 },
+  "items": [
+    { "kind": "youtube#playlistItem", "id": "pi1", "contentDetails": { "videoId": "vidLong00001", "videoPublishedAt": "2026-11-02T17:00:00Z" } },
+    { "kind": "youtube#playlistItem", "id": "pi2", "contentDetails": { "videoId": "vidShort0001", "videoPublishedAt": "2026-10-20T15:30:00Z" } }
+  ]
+}
