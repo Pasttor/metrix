@@ -1,0 +1,5 @@
+{
+  "kind": "youtube#channelListResponse",
+  "etag": "fixture-etag",
+  "pageInfo": { "totalResults": 0, "resultsPerPage": 5 }
+}

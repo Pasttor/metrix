@@ -11,6 +11,13 @@ const ERRORS: Record<string, (platform: string) => string> = {
   missing_code: (p) => `${p} no devolvió un código de autorización.`,
   no_accounts: (p) => `${p} no devolvió ninguna cuenta para conectar.`,
   callback_failed: (p) => `No se pudo completar la conexión con ${p}.`,
+  token_exchange_failed: (p) => `${p} rechazó el código de autorización. Vuelve a intentarlo.`,
+  no_refresh_token: () =>
+    "Google no entregó un token de actualización. Quita el acceso de Metrix en myaccount.google.com/connections y vuelve a conectar.",
+  missing_scopes: () =>
+    "Faltan permisos de YouTube. Al conectar, deja marcadas todas las casillas de acceso que pide Metrix.",
+  no_channel: () => "Esa cuenta de Google no tiene canal de YouTube. Conecta con la cuenta o cuenta de marca del canal.",
+  channel_lookup_failed: () => "Se obtuvo el permiso, pero no se pudo leer el canal de YouTube. Vuelve a intentarlo.",
 };
 
 export function ConnectionNotice() {
