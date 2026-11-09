@@ -9,6 +9,7 @@ import { createYouTubeClient, VIDEOS_PER_REQUEST, type AnalyticsQuery, type YouT
 import {
   audienceFromReport,
   breakdownDailyMetrics,
+  retentionFromReport,
   channelSnapshotMetrics,
   dailyMetricsFromReport,
   videoMetricsFromReport,
@@ -321,6 +322,23 @@ export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
           audience.push(...rows.map((row) => ({ postId: post.id, ...row })));
         }
         if (audience.length > 0) rowsWritten += await deps.store.upsertPostAudience(reportDate, audience);
+
+        // The retention curve of every video, cached in posts.raw for the hooks report.
+        if (deps.store.savePostDetails) {
+          const retentionQuery = { ...base, dimensions: ["elapsedVideoTimeRatio"], filters: video };
+          let report: AnalyticsReport | null = null;
+          try {
+            report = await client.queryReport({ ...retentionQuery, metrics: ["audienceWatchRatio", "relativeRetentionPerformance"] });
+          } catch (error) {
+            if (!isRejectedQuery(error)) throw error;
+            report = await client.queryReport({ ...retentionQuery, metrics: ["audienceWatchRatio"] }).catch((retry: unknown) => {
+              if (!isRejectedQuery(retry)) throw retry;
+              return null;
+            });
+          }
+          const points = report ? retentionFromReport(report).sort((a, b) => a.ratio - b.ratio) : [];
+          if (points.length > 0) await deps.store.savePostDetails(post.id, { retention: { fetchedAt: now.toISOString(), points } });
+        }
       }
 
       async function syncRecentVideos() {

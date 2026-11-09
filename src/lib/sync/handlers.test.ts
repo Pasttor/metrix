@@ -55,6 +55,13 @@ describe("handleCron", () => {
     expect(JSON.stringify(body)).not.toMatch(/token/i);
   });
 
+  it("runs the after-run step (alerts) and never fails the cron because of it", async () => {
+    const afterRun = vi.fn().mockRejectedValue(new Error("resend down"));
+    const response = await handleCron(cronRequest(`Bearer ${SECRET}`), "youtube", cronDeps({ afterRun }));
+    expect(afterRun).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+  });
+
   it("reports skipped when the platform has no syncer", async () => {
     const response = await handleCron(cronRequest(`Bearer ${SECRET}`), "tiktok", cronDeps({ getSyncer: () => null }));
     expect(await response.json()).toEqual({ status: "skipped", reason: "no_syncer", done: true });

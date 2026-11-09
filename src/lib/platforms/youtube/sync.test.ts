@@ -8,6 +8,7 @@ import empty from "../../../../tests/fixtures/youtube/analytics-empty.json";
 import badRequest from "../../../../tests/fixtures/youtube/analytics-error-bad-request.json";
 import traffic from "../../../../tests/fixtures/youtube/analytics-traffic-source.json";
 import searchTerms from "../../../../tests/fixtures/youtube/analytics-video-search-terms.json";
+import retentionFixture from "../../../../tests/fixtures/youtube/analytics-retention.json";
 import lifetime from "../../../../tests/fixtures/youtube/analytics-video-lifetime.json";
 import channels from "../../../../tests/fixtures/youtube/channels-list.json";
 import playlistPage1 from "../../../../tests/fixtures/youtube/playlist-items-page1.json";
@@ -78,6 +79,8 @@ function fakeYouTube(options: FakeOptions = {}) {
           return json(selectMetrics(lifetime, metrics));
         case "insightTrafficSourceDetail":
           return json(searchTerms);
+        case "elapsedVideoTimeRatio":
+          return json(retentionFixture);
       }
     }
     throw new Error(`unexpected fetch ${url}`);
@@ -95,7 +98,11 @@ function memoryStore() {
   const audience = new Map<string, number>();
   const postDaily = new Map<string, number>();
   const postAudience = new Map<string, number>();
+  const retention = new Map<string, unknown>();
   const store: MetricsStore = {
+    async savePostDetails(postId, details) {
+      if (details.retention) retention.set(postId, details.retention.points);
+    },
     async upsertPostDailyMetrics(rows) {
       for (const row of rows) postDaily.set(`${row.postId}|${row.date}|${row.metric}`, row.value);
       return rows.length;
@@ -133,7 +140,7 @@ function memoryStore() {
         .sort((a, b) => b.publishedAt!.localeCompare(a.publishedAt!));
     },
   };
-  return { store, accountMetrics, posts, postMetrics, audience, postDaily, postAudience };
+  return { store, accountMetrics, posts, postMetrics, audience, postDaily, postAudience, retention };
 }
 
 function setup(options: FakeOptions & { monetary?: boolean; getAccessToken?: AccessTokenGetter } = {}) {
@@ -227,6 +234,12 @@ describe("YouTube daily sync", () => {
     expect(t.postAudience.get("post-vidLong00001|2026-11-09|country|MX")).toBe(8120);
     expect(t.postAudience.get("post-vidLong00001|2026-11-09|age_gender|age25-34|male")).toBe(38.1);
     expect(t.postAudience.get("post-vidLong00001|2026-11-09|traffic_source|SHORTS")).toBe(5100);
+    // Every recent video's retention curve is cached for the hooks report, sorted by position.
+    expect(t.retention.get("post-vidLong00001")).toEqual([
+      { ratio: 0.01, audienceWatchRatio: 1.26, relativePerformance: 0.61 },
+      { ratio: 0.5, audienceWatchRatio: 0.42, relativePerformance: 0.48 },
+      { ratio: 1, audienceWatchRatio: 0.18, relativePerformance: 0.39 },
+    ]);
     // The old video (2024) is outside the 90-day weekly window.
     expect(t.reports().some((url) => url.searchParams.get("filters")?.startsWith("video==vidOld000001"))).toBe(false);
   });

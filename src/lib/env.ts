@@ -45,6 +45,8 @@ export const envSchema = z.object({
   /** Contact shown on the public privacy page (optional; not the login email unless you want it public). */
   CONTACT_EMAIL: z.email().optional(),
   ALERT_EMAIL_TO: z.email().optional(),
+  /** Sender for alert emails; Resend's test sender only delivers to the Resend account owner. */
+  ALERT_EMAIL_FROM: z.string().min(3).default("Metrix <onboarding@resend.dev>"),
 });
 
 export type Env = z.infer<typeof envSchema>;

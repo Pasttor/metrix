@@ -32,7 +32,11 @@ export function summarizeRun(result: RunSyncResult) {
   };
 }
 
-export type CronDeps = RunSyncDeps & { cronSecret: string };
+export type CronDeps = RunSyncDeps & {
+  cronSecret: string;
+  /** Runs after each cron sync (alert emails); its failure never fails the cron. */
+  afterRun?: () => Promise<unknown>;
+};
 
 export async function handleCron(request: Request, platform: SyncPlatform, deps: CronDeps): Promise<Response> {
   if (!isValidCronAuth(request.headers.get("authorization"), deps.cronSecret)) {
@@ -40,6 +44,7 @@ export async function handleCron(request: Request, platform: SyncPlatform, deps:
   }
   const now = deps.now ?? (() => new Date());
   const result = await runSync({ platform, job: "daily", deadline: new Date(now().getTime() + CRON_BUDGET_MS) }, deps);
+  await deps.afterRun?.().catch((error: unknown) => console.warn(`[cron] after-run step failed: ${error instanceof Error ? error.name : "unknown"}`));
   return NextResponse.json(summarizeRun(result));
 }
 

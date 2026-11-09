@@ -3,6 +3,7 @@ import Link from "next/link";
 const TABS = [
   { href: "/settings/connections", label: "Conexiones" },
   { href: "/settings/competitors", label: "Competencia" },
+  { href: "/settings/health", label: "Salud" },
 ];
 
 export function SettingsTabs({ active }: { active: string }) {
