@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # AGENTS.md — Metrix
 
-Metrix es un dashboard **personal y de un solo usuario** de métricas de redes sociales (YouTube, Instagram, Facebook, TikTok). Solo **lee** métricas por APIs oficiales, guarda una foto diaria en Postgres y las muestra. No publica contenido.
+Metrix es un dashboard **personal y de un solo usuario** de métricas de redes sociales (YouTube, Instagram, Facebook, TikTok). Lee métricas por APIs oficiales, guarda una foto diaria en Postgres y las muestra. Desde la fase de publicación (ver `docs/PUBLISHING.md`) también **programa y publica** videos del propio usuario, tomados de su Google Drive, solo cuando él lo pide.
 
 El plan de trabajo completo, con el orden de tareas y sus criterios de aceptación, está en `docs/PLAN.md`. Trabaja **una tarea a la vez** (T00, T01…) y no adelantes trabajo de tareas futuras.
 
@@ -97,7 +97,8 @@ docs/
 - Llamar APIs reales en pruebas: usa fixtures en `tests/fixtures` y `fetch` simulado.
 - Editar migraciones ya aplicadas: crea una nueva. Cada tabla nueva necesita `grant` explícitos para `service_role` (y `select` para `authenticated` si el dashboard la lee): Supabase ya no los da por defecto.
 - Desactivar RLS en cualquier tabla.
-- Agregar funciones de publicación o de escritura en las redes sociales.
+- Publicar, editar o borrar contenido en las redes fuera del flujo de publicaciones programadas de `docs/PUBLISHING.md` (nada de acciones automáticas que el usuario no haya programado).
+- Pedir permisos de escritura más amplios que los de esa fase (por ejemplo, `drive.readonly` en lugar de `drive.file`).
 - Instalar dependencias grandes sin justificarlo en la descripción del PR.
 
 ## Definición de terminado
