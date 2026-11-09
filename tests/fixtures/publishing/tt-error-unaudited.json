@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "unaudited_client_can_only_post_to_private_accounts",
+    "message": "Please review our integration guidelines",
+    "log_id": "20261109000005"
+  }
+}

@@ -20,6 +20,9 @@ export const META_SCOPES = [
  */
 export const META_OPTIONAL_SCOPES = ["business_management"] as const;
 
+/** Publishing phase (optional): Instagram Reels and Facebook Page posts. */
+export const META_PUBLISH_SCOPES = ["instagram_content_publish", "pages_manage_posts"] as const;
+
 const PAGE_FIELDS = "id,name,username,access_token,picture{url},instagram_business_account{id,username,profile_picture_url}";
 
 export type MetaConnectorConfig = {
@@ -74,7 +77,7 @@ export function createMetaConnector(config: MetaConnectorConfig): PlatformConnec
       if (config.loginConfigId) {
         url.searchParams.set("config_id", config.loginConfigId);
       } else {
-        url.searchParams.set("scope", [...META_SCOPES, ...META_OPTIONAL_SCOPES, ...(config.extraScopes ?? [])].join(","));
+        url.searchParams.set("scope", [...META_SCOPES, ...META_OPTIONAL_SCOPES, ...META_PUBLISH_SCOPES, ...(config.extraScopes ?? [])].join(","));
       }
       return url.toString();
     },

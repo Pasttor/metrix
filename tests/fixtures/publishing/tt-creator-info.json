@@ -1,0 +1,21 @@
+{
+  "data": {
+    "creator_avatar_url": "https://p16.example/avatar.jpg",
+    "creator_username": "metrix_test",
+    "creator_nickname": "Metrix",
+    "privacy_level_options": [
+      "FOLLOWER_OF_CREATOR",
+      "MUTUAL_FOLLOW_FRIENDS",
+      "SELF_ONLY"
+    ],
+    "comment_disabled": false,
+    "duet_disabled": false,
+    "stitch_disabled": true,
+    "max_video_post_duration_sec": 600
+  },
+  "error": {
+    "code": "ok",
+    "message": "",
+    "log_id": "20261109000000"
+  }
+}

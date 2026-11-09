@@ -32,7 +32,7 @@ const factories: Partial<Record<ConnectPlatform, () => PlatformConnector | null>
   tiktok() {
     const env = getEnv();
     if (!env.TIKTOK_CLIENT_KEY || !env.TIKTOK_CLIENT_SECRET) return null;
-    return createTikTokConnector({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET });
+    return createTikTokConnector({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET, publish: env.TIKTOK_PUBLISH });
   },
 };
 

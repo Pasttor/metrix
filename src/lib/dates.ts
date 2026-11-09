@@ -47,3 +47,26 @@ export function startOfDayInTimeZone(isoDate: string, timeZone: string): number 
   guess = utcMidnight - offsetMs(guess, timeZone);
   return guess;
 }
+
+/** "YYYY-MM-DDTHH:mm" read as wall-clock time in `timeZone` → the instant (DST-aware), or null if malformed. */
+export function zonedTimeToUtc(localDateTime: string, timeZone: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(localDateTime);
+  if (!match) return null;
+  const [, y, mo, d, h, mi] = match.map(Number);
+  const asUtc = Date.UTC(y, mo - 1, d, h, mi);
+  const check = new Date(asUtc);
+  if (check.getUTCMonth() !== mo - 1 || check.getUTCDate() !== d || h > 23 || mi > 59) return null;
+  let guess = asUtc - offsetMs(asUtc, timeZone);
+  guess = asUtc - offsetMs(guess, timeZone);
+  return new Date(guess);
+}
+
+/** The instant as "YYYY-MM-DDTHH:mm" wall-clock time in `timeZone` (for datetime-local inputs). */
+export function utcToZonedInput(instant: Date, timeZone: string): string {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(instant)
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}

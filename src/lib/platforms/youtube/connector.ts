@@ -12,7 +12,13 @@ export const YOUTUBE_SCOPES = {
   readonly: "https://www.googleapis.com/auth/youtube.readonly",
   analytics: "https://www.googleapis.com/auth/yt-analytics.readonly",
   monetary: "https://www.googleapis.com/auth/yt-analytics-monetary.readonly",
+  /** Publishing phase: upload videos and read the Drive files the user picks. */
+  upload: "https://www.googleapis.com/auth/youtube.upload",
+  driveFile: "https://www.googleapis.com/auth/drive.file",
 } as const;
+
+/** Optional: without them Metrix still reads, it just cannot publish. */
+export const YOUTUBE_PUBLISH_SCOPES = [YOUTUBE_SCOPES.upload, YOUTUBE_SCOPES.driveFile];
 
 /** Scopes without which nothing can be synced; the user can untick them on the consent screen. */
 const REQUIRED_SCOPES = [YOUTUBE_SCOPES.readonly, YOUTUBE_SCOPES.analytics];
@@ -27,9 +33,10 @@ export type YouTubeConnectorConfig = {
 };
 
 export function youtubeScopes(monetary: boolean): string[] {
-  return monetary
+  const read = monetary
     ? [YOUTUBE_SCOPES.readonly, YOUTUBE_SCOPES.analytics, YOUTUBE_SCOPES.monetary]
     : [YOUTUBE_SCOPES.readonly, YOUTUBE_SCOPES.analytics];
+  return [...read, ...YOUTUBE_PUBLISH_SCOPES];
 }
 
 function toTokens(token: GoogleToken, now: Date): OAuthTokens {

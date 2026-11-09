@@ -71,7 +71,7 @@ describe("buildAuthUrl", () => {
       code_challenge: "ch",
       code_challenge_method: "S256",
     });
-    expect(url.searchParams.get("scope")?.split(",")).toEqual([...META_SCOPES, "business_management"]);
+    expect(url.searchParams.get("scope")?.split(",")).toEqual([...META_SCOPES, "business_management", "instagram_content_publish", "pages_manage_posts"]);
     expect(url.searchParams.has("config_id")).toBe(false);
   });
 

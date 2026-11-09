@@ -1,0 +1,13 @@
+{
+  "error": {
+    "code": 403,
+    "message": "Request had insufficient authentication scopes.",
+    "errors": [
+      {
+        "reason": "insufficientPermissions",
+        "domain": "global"
+      }
+    ],
+    "status": "PERMISSION_DENIED"
+  }
+}

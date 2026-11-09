@@ -23,7 +23,12 @@ const SUPABASE_STUB = `
     select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
   $$;
   grant usage on schema public to anon, authenticated, service_role;
+  -- pg_cron is a Supabase extension PGlite lacks: the publish job migration only needs cron.schedule().
+  create schema cron;
+  create function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as $$ select 1::bigint $$;
 `;
+// Extensions PGlite does not ship; SUPABASE_STUB covers what the migrations call.
+const UNAVAILABLE_EXTENSIONS = /(drop extension if exists pg_net;)|create extension (if not exists )?(pg_cron|pg_net)( with schema extensions)?;/g;
 // Like current Supabase projects, new tables get no automatic DML grants, so
 // the migrations must grant every privilege explicitly.
 
@@ -51,7 +56,7 @@ beforeAll(async () => {
     .filter((file) => file.endsWith(".sql"))
     .sort();
   for (const file of migrations) {
-    await db.exec(readFileSync(join(supabaseDir, "migrations", file), "utf8"));
+    await db.exec(readFileSync(join(supabaseDir, "migrations", file), "utf8").replace(UNAVAILABLE_EXTENSIONS, ""));
   }
   await db.exec(readFileSync(join(supabaseDir, "seed.sql"), "utf8"));
 
@@ -169,5 +174,13 @@ describe("row level security", () => {
       where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity
     `);
     expect(rows.rows).toEqual([]);
+  });
+
+  it("keeps the publish queue functions server-only", async () => {
+    for (const role of ["anon", "authenticated"] as const) {
+      await expect(queryAs(role, ALLOWED, "select * from public.claim_publish_targets(1, 60)")).rejects.toThrow(/permission denied/);
+      await expect(queryAs(role, ALLOWED, "select public.set_cron_secret('a-long-enough-secret')")).rejects.toThrow(/permission denied/);
+    }
+    await expect(queryAs("service_role", null, "select * from public.claim_publish_targets(1, 60)")).resolves.toEqual([]);
   });
 });

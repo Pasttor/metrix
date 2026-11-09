@@ -15,13 +15,18 @@ export default function AboutPage() {
       </p>
       <h2>Qué hace</h2>
       <ul>
-        <li>Lee métricas de las cuentas del propio usuario mediante las APIs oficiales de cada red, con permisos de solo lectura.</li>
+        <li>Lee métricas de las cuentas del propio usuario mediante las APIs oficiales de cada red.</li>
         <li>Guarda una foto diaria de esas métricas para ver su evolución, comparar periodos y armar reportes.</li>
         <li>Muestra gráficas de vistas, seguidores, retención de audiencia, publicaciones y audiencia.</li>
+        <li>
+          Publica, en la fecha y hora que el propio usuario programa, los videos que él mismo elige de su Google Drive, en sus cuentas de
+          Instagram, Facebook, YouTube y TikTok.
+        </li>
       </ul>
       <h2>Qué no hace</h2>
       <ul>
-        <li>No publica, edita ni borra contenido en ninguna red social.</li>
+        <li>No publica nada que el usuario no haya programado, ni edita o borra contenido existente.</li>
+        <li>No ve otros archivos de Google Drive: solo los videos que el usuario elige con el selector de Google.</li>
         <li>No usa scraping ni servicios no oficiales.</li>
         <li>No ofrece cuentas a otras personas: el acceso está limitado a su dueño.</li>
       </ul>

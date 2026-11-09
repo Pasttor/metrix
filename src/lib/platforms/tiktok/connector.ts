@@ -10,12 +10,16 @@ export const TIKTOK_TOKEN_URL = "https://open.tiktokapis.com/v2/oauth/token/";
 
 /** Read-only scopes (Display API through Login Kit). */
 export const TIKTOK_SCOPES = ["user.info.basic", "user.info.profile", "user.info.stats", "video.list"] as const;
+/** Content Posting API, only while the app has it (the Sandbox does; Production after its own review). */
+export const TIKTOK_PUBLISH_SCOPES = ["video.upload", "video.publish"] as const;
 /** Without these nothing useful can be synced. */
 const REQUIRED_SCOPES = ["user.info.basic"];
 
 export type TikTokConnectorConfig = {
   clientKey: string;
   clientSecret: string;
+  /** Also ask for the publishing scopes (TIKTOK_PUBLISH=true). */
+  publish?: boolean;
   fetch?: FetchFn;
   retry?: RetryOptions;
   now?: () => Date;
@@ -79,7 +83,7 @@ export function createTikTokConnector(config: TikTokConnectorConfig): PlatformCo
       const url = new URL(TIKTOK_AUTH_URL);
       url.searchParams.set("client_key", config.clientKey);
       url.searchParams.set("response_type", "code");
-      url.searchParams.set("scope", TIKTOK_SCOPES.join(","));
+      url.searchParams.set("scope", [...TIKTOK_SCOPES, ...(config.publish ? TIKTOK_PUBLISH_SCOPES : [])].join(","));
       url.searchParams.set("redirect_uri", redirectUri);
       url.searchParams.set("state", state);
       return url.toString();

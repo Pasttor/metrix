@@ -464,6 +464,120 @@ export type Database = {
           },
         ]
       }
+      scheduled_post_targets: {
+        Row: {
+          account_id: string | null
+          attempts: number
+          caption: string | null
+          error: string | null
+          external_id: string | null
+          id: string
+          locked_until: string | null
+          next_check_at: string | null
+          permalink: string | null
+          platform: string
+          published_at: string | null
+          scheduled_post_id: string
+          state: Json
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          attempts?: number
+          caption?: string | null
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          locked_until?: string | null
+          next_check_at?: string | null
+          permalink?: string | null
+          platform: string
+          published_at?: string | null
+          scheduled_post_id: string
+          state?: Json
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          attempts?: number
+          caption?: string | null
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          locked_until?: string | null
+          next_check_at?: string | null
+          permalink?: string | null
+          platform?: string
+          published_at?: string | null
+          scheduled_post_id?: string
+          state?: Json
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_post_targets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_post_targets_scheduled_post_id_fkey"
+            columns: ["scheduled_post_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_posts: {
+        Row: {
+          caption: string
+          created_at: string
+          drive_file_id: string
+          drive_file_name: string | null
+          drive_mime_type: string | null
+          drive_size_bytes: number | null
+          id: string
+          scheduled_at: string
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          drive_file_id: string
+          drive_file_name?: string | null
+          drive_mime_type?: string | null
+          drive_size_bytes?: number | null
+          id?: string
+          scheduled_at: string
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          drive_file_id?: string
+          drive_file_name?: string | null
+          drive_mime_type?: string | null
+          drive_size_bytes?: number | null
+          id?: string
+          scheduled_at?: string
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sync_runs: {
         Row: {
           account_id: string | null
@@ -543,7 +657,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_publish_targets: {
+        Args: { p_limit: number; p_lease_seconds: number }
+        Returns: Database["public"]["Tables"]["scheduled_post_targets"]["Row"][]
+      }
+      set_cron_secret: {
+        Args: { p_secret: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

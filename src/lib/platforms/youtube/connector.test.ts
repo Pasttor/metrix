@@ -61,7 +61,7 @@ describe("buildAuthUrl", () => {
       code_challenge: "ch",
       code_challenge_method: "S256",
     });
-    expect(url.searchParams.get("scope")?.split(" ")).toEqual([YOUTUBE_SCOPES.readonly, YOUTUBE_SCOPES.analytics]);
+    expect(url.searchParams.get("scope")?.split(" ")).toEqual([YOUTUBE_SCOPES.readonly, YOUTUBE_SCOPES.analytics, YOUTUBE_SCOPES.upload, YOUTUBE_SCOPES.driveFile]);
   });
 
   it("adds the monetary scope only when YOUTUBE_MONETARY is on", () => {

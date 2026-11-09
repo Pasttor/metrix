@@ -71,6 +71,13 @@ describe("TikTok connector", () => {
     });
   });
 
+  it("adds the publishing scopes only when enabled", () => {
+    const url = new URL(
+      createTikTokConnector({ clientKey: "k", clientSecret: "s", publish: true }).buildAuthUrl({ state: "st", codeChallenge: "ch", redirectUri: REDIRECT }),
+    );
+    expect(url.searchParams.get("scope")).toBe("user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish");
+  });
+
   it("connects with partial scopes and requests only the basic fields", async () => {
     let fields = "";
     const { callback } = connector({
