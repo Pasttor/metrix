@@ -65,6 +65,14 @@ describe("decideAccess", () => {
 });
 
 describe("isPublicPath", () => {
+  it("opens the about and privacy pages to everyone (Google and Meta check them)", () => {
+    expect(isPublicPath("/acerca")).toBe(true);
+    expect(isPublicPath("/privacidad")).toBe(true);
+    expect(decideAccess({ ...base, pathname: "/privacidad", email: null })).toEqual({ action: "next" });
+    expect(decideAccess({ ...base, pathname: "/privacidad", email: "someone@example.com" })).toEqual({ action: "next" });
+    expect(isPublicPath("/privacidad-admin")).toBe(false);
+  });
+
   it("does not treat look-alike paths as public", () => {
     expect(isPublicPath("/login-admin")).toBe(false);
     expect(isPublicPath("/authors")).toBe(false);

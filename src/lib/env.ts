@@ -42,6 +42,8 @@ export const envSchema = z.object({
 
   // Alerts (T16)
   RESEND_API_KEY: optionalString,
+  /** Contact shown on the public privacy page (optional; not the login email unless you want it public). */
+  CONTACT_EMAIL: z.email().optional(),
   ALERT_EMAIL_TO: z.email().optional(),
 });
 
