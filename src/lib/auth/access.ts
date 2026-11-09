@@ -5,7 +5,7 @@
 
 /** Paths reachable without a session. API routes guard themselves (cron secret, webhook signature, session checks). */
 /** Public routes: login flow, APIs (own auth) and the pages OAuth reviewers must reach. */
-const PUBLIC_PREFIXES = ["/login", "/auth/", "/api/", "/acerca", "/privacidad"];
+const PUBLIC_PREFIXES = ["/login", "/auth/", "/api/", "/acerca", "/privacidad", "/terminos"];
 
 export function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((prefix) =>

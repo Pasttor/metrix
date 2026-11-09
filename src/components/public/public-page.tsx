@@ -21,6 +21,9 @@ export function PublicPage({ title, children }: { title: string; children: React
         <Link href="/privacidad" className="hover:text-foreground">
           Privacidad
         </Link>
+        <Link href="/terminos" className="hover:text-foreground">
+          Términos
+        </Link>
         <Link href="/login" className="hover:text-foreground">
           Entrar
         </Link>

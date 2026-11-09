@@ -68,6 +68,7 @@ describe("isPublicPath", () => {
   it("opens the about and privacy pages to everyone (Google and Meta check them)", () => {
     expect(isPublicPath("/acerca")).toBe(true);
     expect(isPublicPath("/privacidad")).toBe(true);
+    expect(isPublicPath("/terminos")).toBe(true);
     expect(decideAccess({ ...base, pathname: "/privacidad", email: null })).toEqual({ action: "next" });
     expect(decideAccess({ ...base, pathname: "/privacidad", email: "someone@example.com" })).toEqual({ action: "next" });
     expect(isPublicPath("/privacidad-admin")).toBe(false);
