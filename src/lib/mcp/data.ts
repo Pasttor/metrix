@@ -250,7 +250,9 @@ export async function accountAudience(platform: Platform) {
 
 export async function overview(range: Range) {
   const data = await getOverview(range, db());
-  return { range, networks: data.networks, topByViews: data.topByViews, topByEngagement: data.topByEngagement, bestTimes: data.heatmap.all };
+  // Only the hours with posts (weekday 0 = lunes, hours in the report time zone); the empty cells waste context.
+  const bestTimes = (data.heatmap.all ?? []).filter((cell) => cell.posts > 0);
+  return { range, networks: data.networks, topByViews: data.topByViews, topByEngagement: data.topByEngagement, bestTimes };
 }
 
 export async function contentReports() {
