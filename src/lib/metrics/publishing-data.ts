@@ -82,3 +82,11 @@ export async function listScheduledPosts(): Promise<ScheduledPost[]> {
       .sort((a, b) => PUBLISH_PLATFORMS.indexOf(a.platform) - PUBLISH_PLATFORMS.indexOf(b.platform)),
   }));
 }
+
+/** Whether some network is processing or due now; a post scheduled for next week does not need polling. */
+export function postsInFlight(posts: ScheduledPost[], now: Date = new Date()): boolean {
+  const soon = now.getTime() + 60_000;
+  return posts.some((post) =>
+    post.targets.some((target) => target.status === "processing" || (target.status === "pending" && Date.parse(post.scheduledAt) <= soon)),
+  );
+}

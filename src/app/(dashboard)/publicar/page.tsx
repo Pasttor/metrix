@@ -4,12 +4,13 @@ import { CircleCheck, CircleX, Clock, LoaderCircle, Ban } from "lucide-react";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { Section } from "@/components/metrics/section";
 import { NetworkIcon } from "@/components/overview/network-icon";
+import { AutoRefresh } from "@/components/publishing/auto-refresh";
 import { PublishForm, type PickerConfig } from "@/components/publishing/publish-form";
 import { Button } from "@/components/ui/button";
 import { utcToZonedInput } from "@/lib/dates";
 import { getEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
-import { getDriveAccount, listPublishAccounts, listScheduledPosts, SCHEDULED_SHOWN, type ScheduledPost, type ScheduledTarget } from "@/lib/metrics/publishing-data";
+import { getDriveAccount, listPublishAccounts, listScheduledPosts, postsInFlight, SCHEDULED_SHOWN, type ScheduledPost, type ScheduledTarget } from "@/lib/metrics/publishing-data";
 import type { PostStatus } from "@/lib/publishing/runner";
 import { cancelPostAction, retryTargetAction } from "./actions";
 
@@ -135,6 +136,7 @@ async function PostList() {
   if (posts.length === 0) return <EmptyState message="Todavía no hay publicaciones. Las que programes aparecerán aquí con el estado de cada red." />;
   return (
     <>
+      <AutoRefresh active={postsInFlight(posts)} />
       <ul className="flex flex-col gap-3">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
