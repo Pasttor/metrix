@@ -39,7 +39,7 @@ export function similarity(a: string[], b: string[]): number {
 
 export type ReportPost = {
   id: string;
-  platform: "youtube" | "instagram" | "facebook";
+  platform: "youtube" | "instagram" | "facebook" | "tiktok";
   title: string;
   caption: string | null;
   publishedAt: string | null;
@@ -78,7 +78,7 @@ export function matchAcrossNetworks(posts: ReportPost[]): CrossGroup[] {
     if (used.has(anchor.id)) continue;
     const group: CrossGroup = { key: anchor.id, title: anchor.title, posts: { [anchor.platform]: anchor }, score: 1 };
     const scores: number[] = [];
-    for (const platform of ["youtube", "instagram", "facebook"] as const) {
+    for (const platform of ["youtube", "instagram", "facebook", "tiktok"] as const) {
       if (platform === anchor.platform || group.posts[platform]) continue;
       let best: { post: ReportPost; score: number } | null = null;
       for (const candidate of posts) {

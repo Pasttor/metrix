@@ -22,12 +22,14 @@ const METRICS = {
   youtube: ["viewCount", "likeCount", "commentCount", "averageViewDuration"],
   instagram: ["views", "total_interactions", "like_count", "comments_count", "ig_reels_avg_watch_time", "reels_skip_rate"],
   facebook: ["post_media_view", "reactions", "comments", "shares", "post_video_avg_time_watched"],
+  tiktok: ["view_count", "like_count", "comment_count", "share_count"],
 } as const;
 
 const DETAIL = {
   youtube: (id: string) => `/youtube/videos/${id}`,
   instagram: (id: string) => `/instagram/posts/${id}`,
   facebook: (id: string) => `/facebook/posts/${id}`,
+  tiktok: (id: string) => `/tiktok/videos/${id}`,
 };
 
 function retentionOf(raw: unknown): RetentionPoint[] {
@@ -69,6 +71,11 @@ function toReportPost(platform: ReportPost["platform"], post: PostRecord, values
       hook3s: hookFromSkipRate(get("reels_skip_rate")),
     };
   }
+  if (platform === "tiktok") {
+    // TikTok gives neither watch time nor retention for personal accounts.
+    const views = get("view_count");
+    return { ...base, views, engagement: ratio(sumKnown(get("like_count"), get("comment_count"), get("share_count")), views), avgWatchSeconds: null, hook3s: null };
+  }
   const views = get("post_media_view");
   const avg = get("post_video_avg_time_watched");
   return {
@@ -93,7 +100,7 @@ export async function getReports(): Promise<Reports> {
   const posts: ReportPost[] = [];
   let youtubeAccountId: string | null = null;
 
-  for (const platform of ["youtube", "instagram", "facebook"] as const) {
+  for (const platform of ["youtube", "instagram", "facebook", "tiktok"] as const) {
     const account = await getAccount(db, platform);
     if (!account) continue;
     if (platform === "youtube") youtubeAccountId = account.id;

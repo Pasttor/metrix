@@ -15,6 +15,7 @@ const NETWORKS = [
   { key: "youtube", label: "YouTube" },
   { key: "instagram", label: "Instagram" },
   { key: "facebook", label: "Facebook" },
+  { key: "tiktok", label: "TikTok" },
 ] as const;
 
 type MetricSpec = { label: string; value: (post: ReportPost) => number | null; format: (value: number | null) => string };
@@ -95,7 +96,7 @@ async function Reports() {
   return (
     <div className="flex flex-col gap-6">
       <Section
-        title="El mismo video en las tres redes"
+        title="El mismo video en todas las redes"
         description="Publicaciones con las mismas palabras en el título y publicadas con menos de 3 días de diferencia. En negritas, la mejor red en cada métrica."
       >
         {reports.groups.length === 0 ? (
@@ -111,10 +112,10 @@ async function Reports() {
 
       <Section
         title="Reporte de hooks"
-        description="Qué porcentaje de la audiencia sigue viendo a los 3 segundos. YouTube y Facebook: curva de retención; Instagram: 100 % menos la tasa de salto."
+        description="Qué porcentaje de la audiencia sigue viendo a los 3 segundos. YouTube y Facebook: curva de retención; Instagram: 100 % menos la tasa de salto. TikTok no entrega retención para cuentas personales."
       >
         <div className="grid grid-cols-3 gap-3">
-          {NETWORKS.map((network) => (
+          {NETWORKS.filter((network) => network.key !== "tiktok").map((network) => (
             <Stat
               key={network.key}
               label={`${network.label}: promedio a los 3 s`}

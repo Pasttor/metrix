@@ -62,9 +62,10 @@ describe("matchAcrossNetworks", () => {
       post({ id: "i1", platform: "instagram", title: "En 1975, un ingeniero de Kodak armó una cámara digital. En 2012, Kodak quebró", publishedAt: day(1) }),
       post({ id: "f1", platform: "facebook", title: "En 1975, un ingeniero de Kodak armó una cámara digital. En 2012, Kodak quebró", publishedAt: day(1) }),
       post({ id: "f0", platform: "facebook", title: "", publishedAt: day(1) }),
+      post({ id: "t7", platform: "tiktok", title: "Debes miles en tarjetas: ¿te pones a vender cereal? #finanzas", publishedAt: day(7) }),
     ];
     const groups = matchAcrossNetworks(posts).map((group) => Object.values(group.posts).map((p) => p!.id).sort());
-    expect(groups).toEqual([["f7", "i7", "y7"], ["f1", "i1", "y1"]]);
+    expect(groups).toEqual([["f7", "i7", "t7", "y7"], ["f1", "i1", "y1"]]);
   });
 
   it("does not match posts published far apart or with different words", () => {
