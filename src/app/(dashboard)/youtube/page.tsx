@@ -95,6 +95,15 @@ async function YouTubeDashboard({ searchParams }: { searchParams: PageProps<"/yo
         <Section title="Vistas diarias">
           <TrendChart data={overview.views} label="Vistas" />
         </Section>
+        <Section
+          title="Vistas comprometidas por día"
+          description="En Shorts, YouTube cuenta una vista desde el primer cuadro; las comprometidas son las comparables con las vistas de antes."
+        >
+          <TrendChart data={overview.engagedViews} label="Vistas comprometidas" />
+        </Section>
+        <Section title="Vistas por tipo de contenido" description="Shorts, videos largos y directos en el periodo.">
+          <ShareBars rows={overview.contentTypes} />
+        </Section>
       </div>
 
       <Section title="Videos" description="Haz clic en un video para ver su crecimiento y su curva de retención.">

@@ -123,7 +123,9 @@ describe("Facebook daily sync", () => {
 
     expect(t.accountMetrics.get("2026-11-08|followers_count")).toBe(0); // a real zero from the API
     const [call] = pageInsightCalls(t.calls);
-    expect(call.searchParams.get("metric")).toBe("page_follows,page_total_media_view_unique,page_post_engagements,page_video_views,page_media_view");
+    expect(call.searchParams.get("metric")).toBe(
+      "page_follows,page_total_media_view_unique,page_post_engagements,page_video_views,page_media_view,page_video_view_time,page_video_complete_views_30s,page_daily_follows_unique,page_daily_unfollows_unique",
+    );
     // end_time marks the end of the day: 2026-11-06T08:00Z → 2026-11-05.
     expect(t.accountMetrics.get("2026-11-05|page_total_media_view_unique")).toBe(288);
     expect(t.accountMetrics.get("2026-11-07|page_media_view")).toBe(107);
@@ -196,7 +198,7 @@ describe("Facebook backfill", () => {
       expect(span).toBeLessThan(90); // Meta rejects more than 90 days, DST hour included
     }
     expect(t.accountMetrics.get("2026-11-07|page_follows")).toBe(5);
-    expect(t.accountMetrics.size).toBe(2 * FB_BLOCK_DAYS * 5 + 1);
+    expect(t.accountMetrics.size).toBe(2 * FB_BLOCK_DAYS * 9 + 1);
   });
 
   it("stops between blocks with a cursor and resumes from it", async () => {

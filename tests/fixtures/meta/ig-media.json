@@ -8,7 +8,9 @@
       "permalink": "https://www.instagram.com/reel/AAA/",
       "thumbnail_url": "https://scontent.cdninstagram.com/thumb1.jpg",
       "media_url": "https://scontent.cdninstagram.com/video1.mp4",
-      "timestamp": "2026-11-06T18:00:00+0000"
+      "timestamp": "2026-11-06T18:00:00+0000",
+      "like_count": 3,
+      "comments_count": 0
     },
     {
       "id": "18000000000000002",
@@ -26,7 +28,9 @@
       "media_product_type": "FEED",
       "permalink": "https://www.instagram.com/p/CCC/",
       "media_url": "https://scontent.cdninstagram.com/img3.jpg",
-      "timestamp": "2026-08-01T12:00:00+0000"
+      "timestamp": "2026-08-01T12:00:00+0000",
+      "like_count": 12,
+      "comments_count": 1
     }
   ],
   "paging": {

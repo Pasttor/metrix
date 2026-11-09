@@ -22,6 +22,15 @@ export const IG_ACCOUNT_DAILY_METRICS = [
   "reposts",
 ];
 
+/**
+ * Daily account metrics split by a breakdown, stored as "<metric>.<label>.<value>"
+ * (e.g. reach.format.reel, reach.follow.non_follower). One call per breakdown.
+ */
+export const IG_ACCOUNT_BREAKDOWNS = [
+  { breakdown: "media_product_type", label: "format", metrics: ["reach", "views", "total_interactions", "likes", "comments", "shares", "saves"] },
+  { breakdown: "follow_type", label: "follow", metrics: ["reach", "views"] },
+];
+
 const FEED_METRICS = ["views", "reach", "likes", "comments", "shares", "saved", "total_interactions", "reposts", "total_likes", "total_comments", "total_views"];
 const REELS_METRICS = [...FEED_METRICS, "ig_reels_avg_watch_time", "ig_reels_video_view_total_time", "reels_skip_rate"];
 const STORY_METRICS = ["views", "reach", "replies", "shares", "link_clicks", "navigation"];
@@ -82,6 +91,28 @@ export function insightValues(insights: Insights): Map<string, number> {
     if (value !== null) result.set(item.name, value);
   }
   return result;
+}
+
+/** Breakdown results as "<metric>.<label>.<value>" rows; missing results write nothing. */
+export function breakdownValues(insights: Insights, label: string): { metric: string; value: number }[] {
+  return insights.data.flatMap((item) =>
+    (item.total_value?.breakdowns ?? []).flatMap((breakdown) =>
+      (breakdown.results ?? []).flatMap((entry) => {
+        const key = entry.dimension_values.join("_").toLowerCase();
+        return key ? [{ metric: `${item.name}.${label}.${key}`, value: entry.value }] : [];
+      }),
+    ),
+  );
+}
+
+/** Public counters that come with the media list. */
+export function mediaCounterMetrics(media: IgMedia): { metric: string; value: number }[] {
+  return (
+    [
+      ["like_count", media.like_count],
+      ["comments_count", media.comments_count],
+    ] as const
+  ).flatMap(([metric, value]) => (typeof value === "number" ? [{ metric, value }] : []));
 }
 
 /** `follower_demographics` with one breakdown → audience rows (empty under 100 followers). */

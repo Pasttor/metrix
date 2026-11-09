@@ -9,7 +9,7 @@ import { getAccount, latestMetricDate, loadLatestAudience, loadMetricRows, loadP
 import { buildFollowerDemographics, computeFacebookKpis, computeInstagramKpis, followerSeries, type FollowerDemographics } from "./meta";
 import { periodEndingOn, type Period } from "./period";
 import { latestValuesByPost, percentOf, postTitle, type PostTableRow } from "./posts";
-import { dailySeries, type SeriesPoint } from "./series";
+import { breakdownShares, dailySeries, type BreakdownShare, type SeriesPoint } from "./series";
 import type { Kpi } from "./youtube";
 import { viewGrowth, type GrowthPoint } from "./youtube-content";
 
@@ -23,6 +23,9 @@ export const IG_TYPE_LABELS: Record<string, string> = {
   story: "Historia",
 };
 export const FB_TYPE_LABELS: Record<string, string> = { reel: "Reel", video: "Video", image: "Foto", carousel: "Álbum", post: "Publicación" };
+
+const IG_FORMAT_LABELS: Record<string, string> = { reel: "Reels", post: "Publicaciones", story: "Historias", ad: "Anuncios" };
+const IG_FOLLOW_LABELS: Record<string, string> = { follower: "Seguidores", non_follower: "No seguidores", unknown: "Sin clasificar" };
 
 const IG_POST_METRICS = ["views", "reach", "likes", "comments", "saved", "shares", "total_interactions"];
 const FB_POST_METRICS = [
@@ -41,7 +44,9 @@ export type MetaDashboard = {
   period: Period;
   kpis: Kpi[];
   followers: SeriesPoint[];
-  charts: { views: SeriesPoint[]; secondary: SeriesPoint[] };
+  charts: { views: SeriesPoint[]; secondary: SeriesPoint[]; tertiary?: SeriesPoint[] };
+  /** Period totals split by a breakdown (format, followers vs non-followers...). */
+  breakdowns: { title: string; description: string; rows: BreakdownShare[] }[];
   posts: PostTableRow[];
   hasData: boolean;
 };
@@ -70,6 +75,18 @@ export async function getInstagramDashboard(range: Range): Promise<InstagramDash
     kpis: computeInstagramKpis(rows, period),
     followers: followerSeries(rows, period.start, today),
     charts: { views: dailySeries(rows, "views", period), secondary: dailySeries(rows, "reach", period) },
+    breakdowns: [
+      {
+        title: "Alcance por formato",
+        description: "Cuentas alcanzadas por Reels, publicaciones e historias en el periodo (suma diaria).",
+        rows: breakdownShares(rows, "reach", "format", period.start, period.end, IG_FORMAT_LABELS),
+      },
+      {
+        title: "Alcance: seguidores y no seguidores",
+        description: "Cuánto de tu alcance viene de gente que todavía no te sigue (descubrimiento).",
+        rows: breakdownShares(rows, "reach", "follow", period.start, period.end, IG_FOLLOW_LABELS),
+      },
+    ],
     posts: posts.map((post) => {
       const v = values.get(post.id);
       const get = (metric: string) => v?.get(metric) ?? null;
@@ -113,7 +130,16 @@ export async function getFacebookDashboard(range: Range): Promise<MetaDashboard 
     period,
     kpis: computeFacebookKpis(rows, period),
     followers: followerSeries(rows, period.start, today),
-    charts: { views: dailySeries(rows, "page_total_media_view_unique", period), secondary: dailySeries(rows, "page_video_views", period) },
+    charts: {
+      views: dailySeries(rows, "page_total_media_view_unique", period),
+      secondary: dailySeries(rows, "page_video_views", period),
+      // Watch time comes in milliseconds; shown in minutes.
+      tertiary: dailySeries(rows, "page_video_view_time", period).map((point) => ({
+        date: point.date,
+        value: point.value === null ? null : Math.round(point.value / 60_000),
+      })),
+    },
+    breakdowns: [],
     posts: posts.map((post) => {
       const v = values.get(post.id);
       const get = (metric: string) => v?.get(metric) ?? null;

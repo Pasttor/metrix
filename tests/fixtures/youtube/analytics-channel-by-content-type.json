@@ -1,0 +1,53 @@
+{
+  "kind": "youtubeAnalytics#resultTable",
+  "columnHeaders": [
+    {
+      "name": "day",
+      "columnType": "DIMENSION",
+      "dataType": "STRING"
+    },
+    {
+      "name": "creatorContentType",
+      "columnType": "DIMENSION",
+      "dataType": "STRING"
+    },
+    {
+      "name": "views",
+      "columnType": "METRIC",
+      "dataType": "INTEGER"
+    },
+    {
+      "name": "engagedViews",
+      "columnType": "METRIC",
+      "dataType": "INTEGER"
+    },
+    {
+      "name": "estimatedMinutesWatched",
+      "columnType": "METRIC",
+      "dataType": "INTEGER"
+    },
+    {
+      "name": "subscribersGained",
+      "columnType": "METRIC",
+      "dataType": "INTEGER"
+    }
+  ],
+  "rows": [
+    [
+      "2026-11-04",
+      "shorts",
+      1100,
+      480,
+      3000,
+      10
+    ],
+    [
+      "2026-11-04",
+      "videoOnDemand",
+      100,
+      95,
+      400,
+      2
+    ]
+  ]
+}

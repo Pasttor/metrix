@@ -54,6 +54,15 @@ function fakeGraph(options: Options = {}) {
       }
       const metrics = params.get("metric")!.split(",");
       if (metrics.some((metric) => options.rejectAccountMetrics?.includes(metric))) return json(metricRejected, 400, headers);
+      const breakdown = params.get("breakdown");
+      if (breakdown) {
+        const value = breakdown === "follow_type" ? "NON_FOLLOWER" : "REEL";
+        return json(
+          { data: metrics.map((name) => ({ name, total_value: { value: 7, breakdowns: [{ dimension_keys: [breakdown], results: name === "shares" ? undefined : [{ dimension_values: [value], value: 7 }] }] } })) },
+          200,
+          headers,
+        );
+      }
       return json({ data: accountDay.data.filter((item) => metrics.includes(item.name)) }, 200, headers);
     }
     if (path.endsWith("/insights")) {
@@ -128,7 +137,8 @@ describe("Instagram daily sync", () => {
     expect(t.accountMetrics.get("2026-11-08|followers_count")).toBe(1);
     expect(t.accountMetrics.get("2026-11-08|media_count")).toBe(5);
 
-    const dayCalls = t.calls.filter((url) => url.pathname.endsWith(`${IG.externalId}/insights`));
+    const isMainDayCall = (url: URL) => url.pathname.endsWith(`${IG.externalId}/insights`) && url.searchParams.get("period") === "day" && !url.searchParams.has("breakdown");
+    const dayCalls = t.calls.filter(isMainDayCall);
     expect(dayCalls).toHaveLength(3);
     const [first] = dayCalls;
     expect(first.searchParams.get("metric_type")).toBe("total_value");
@@ -140,6 +150,15 @@ describe("Instagram daily sync", () => {
     expect(t.accountMetrics.get("2026-11-07|reach")).toBe(95);
     // Not in the response (fewer than 100 followers): nothing written, never 0.
     expect(t.accountMetrics.has("2026-11-07|follows_and_unfollows")).toBe(false);
+    // Same day split by format and by followers vs non-followers.
+    expect(t.calls.filter((url) => url.searchParams.get("breakdown") === "media_product_type")).toHaveLength(3);
+    expect(t.accountMetrics.get("2026-11-07|reach.format.reel")).toBe(7);
+    expect(t.accountMetrics.get("2026-11-07|views.follow.non_follower")).toBe(7);
+    expect(t.accountMetrics.has("2026-11-07|shares.format.reel")).toBe(false); // no results: nothing written
+    // like_count / comments_count for every post, the old image included.
+    expect(t.postMetrics.get("post-18000000000000003|2026-11-08|like_count")).toBe(12);
+    expect(t.postMetrics.get("post-18000000000000001|2026-11-08|comments_count")).toBe(0);
+    expect(t.postMetrics.has("post-18000000000000002|2026-11-08|like_count")).toBe(false); // not in the response
 
     expect([...t.posts.values()].map((post) => [post.externalId, post.type])).toEqual([
       ["18000000000000001", "reel"],
@@ -217,7 +236,8 @@ describe("Instagram backfill", () => {
     const t = setup();
     const result = await t.run({ job: "backfill" });
     expect(result.done).toBe(true);
-    expect(t.calls.filter((url) => url.pathname.endsWith(`${IG.externalId}/insights`) && url.searchParams.get("period") === "day")).toHaveLength(IG_BACKFILL_DAYS);
+    const mainDayCalls = t.calls.filter((url) => url.searchParams.get("period") === "day" && !url.searchParams.has("breakdown"));
+    expect(mainDayCalls).toHaveLength(IG_BACKFILL_DAYS);
     expect(t.insightCalls("18000000000000003")).toHaveLength(1);
   });
 
@@ -225,7 +245,7 @@ describe("Instagram backfill", () => {
     const t = setup();
     let dayCalls = 0;
     const stopAfterTwoDays = () => {
-      dayCalls = t.calls.filter((url) => url.searchParams.get("period") === "day").length;
+      dayCalls = t.calls.filter((url) => url.searchParams.get("period") === "day" && !url.searchParams.has("breakdown")).length;
       return dayCalls >= 2;
     };
     const first = await t.run({ job: "backfill", shouldStop: stopAfterTwoDays });
@@ -233,7 +253,7 @@ describe("Instagram backfill", () => {
 
     const resumed = setup();
     await resumed.run({ job: "backfill", cursor: first.cursor as Json });
-    const firstDay = resumed.calls.find((url) => url.searchParams.get("period") === "day")!;
+    const firstDay = resumed.calls.find((url) => url.searchParams.get("period") === "day" && !url.searchParams.has("breakdown"))!;
     expect(firstDay.searchParams.get("since")).toBe(String(Date.parse("2026-08-12T07:00:00Z") / 1000));
   });
 });

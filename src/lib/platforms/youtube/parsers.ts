@@ -57,6 +57,23 @@ export function dailyMetricsFromReport(report: AnalyticsReport): DailyMetric[] {
   return rows;
 }
 
+/**
+ * A `dimensions=day,<dimension>` report as one row per day, metric and value
+ * of the dimension, named "<metric>.<label>.<value>" (e.g. views.content_type.shorts).
+ */
+export function breakdownDailyMetrics(report: AnalyticsReport, dimension: string, label: string): DailyMetric[] {
+  const metrics = report.columnHeaders.filter((header) => header.columnType !== "DIMENSION").map((header) => header.name);
+  return reportRecords(report).flatMap((record) => {
+    const date = record.day;
+    const key = record[dimension];
+    if (typeof date !== "string" || typeof key !== "string" || key === "") return [];
+    return metrics.flatMap((metric) => {
+      const value = toNumber(record[metric]);
+      return value === null ? [] : [{ date, metric: `${metric}.${label}.${key}`, value }];
+    });
+  });
+}
+
 /** Channel totals from `channels.list` as metrics of `date`. A hidden subscriber count is skipped. */
 export function channelSnapshotMetrics(channel: Channel, date: string): DailyMetric[] {
   const stats = channel.statistics;

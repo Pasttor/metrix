@@ -69,3 +69,30 @@ export function snapshotChange(index: MetricIndex, metric: string, from: string,
   if (end === null || datesBefore.length === 0) return null;
   return end - index.get(metric, datesBefore[datesBefore.length - 1])!;
 }
+
+export type BreakdownShare = { key: string; label: string; value: number; share: number };
+
+/**
+ * Totals over [from, to] of a metric stored per breakdown value
+ * ("<metric>.<label>.<value>", e.g. reach.format.reel), as shares of their sum.
+ */
+export function breakdownShares(
+  rows: MetricRow[],
+  metric: string,
+  label: string,
+  from: string,
+  to: string,
+  names: Record<string, string> = {},
+): BreakdownShare[] {
+  const prefix = `${metric}.${label}.`;
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.metric.startsWith(prefix) || row.date < from || row.date > to) continue;
+    const key = row.metric.slice(prefix.length);
+    totals.set(key, (totals.get(key) ?? 0) + row.value);
+  }
+  const sum = [...totals.values()].reduce((total, value) => total + value, 0);
+  return [...totals]
+    .map(([key, value]) => ({ key, label: names[key] ?? key, value, share: sum ? value / sum : 0 }))
+    .sort((a, b) => b.value - a.value);
+}

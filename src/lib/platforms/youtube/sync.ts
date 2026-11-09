@@ -8,6 +8,7 @@ import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/typ
 import { createYouTubeClient, VIDEOS_PER_REQUEST, type AnalyticsQuery, type YouTubeClient } from "./client";
 import {
   audienceFromReport,
+  breakdownDailyMetrics,
   channelSnapshotMetrics,
   dailyMetricsFromReport,
   videoMetricsFromReport,
@@ -22,6 +23,8 @@ export const ANALYTICS_TIME_ZONE = "America/Los_Angeles";
 
 export const CHANNEL_DAILY_METRICS = [
   "views",
+  // Shorts count a view from the first frame; engaged views are the comparable figure.
+  "engagedViews",
   "estimatedMinutesWatched",
   "averageViewDuration",
   "averageViewPercentage",
@@ -32,7 +35,9 @@ export const CHANNEL_DAILY_METRICS = [
   "shares",
 ];
 export const REVENUE_METRICS = ["estimatedRevenue"];
-export const VIDEO_LIFETIME_METRICS = ["estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage"];
+export const VIDEO_LIFETIME_METRICS = ["estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "engagedViews"];
+/** Split by creatorContentType (shorts, videoOnDemand, liveStream...), stored as "<metric>.content_type.<type>". */
+export const CONTENT_TYPE_METRICS = ["views", "engagedViews", "estimatedMinutesWatched", "subscribersGained"];
 
 /** Analytics data arrives late and gets adjusted: re-request this many days each run. */
 export const DAILY_LOOKBACK_DAYS = 7;
@@ -152,6 +157,8 @@ export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
         const query = { startDate, endDate, dimensions: ["day"], sort: "day" };
         const rows = await queryMetrics(query, CHANNEL_DAILY_METRICS, dailyMetricsFromReport);
         if (deps.monetary) rows.push(...(await queryMetrics(query, REVENUE_METRICS, dailyMetricsFromReport)));
+        const byType = { startDate, endDate, dimensions: ["day", "creatorContentType"], sort: "day" };
+        rows.push(...(await queryMetrics(byType, CONTENT_TYPE_METRICS, (report) => breakdownDailyMetrics(report, "creatorContentType", "content_type"))));
         if (rows.length > 0) rowsWritten += await deps.store.upsertAccountMetrics(account.id, rows);
       }
 

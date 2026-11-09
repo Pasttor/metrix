@@ -66,7 +66,10 @@ async function FacebookDashboard({ searchParams }: { searchParams: PageProps<"/f
         <Section title="Reproducciones de video por día">
           <TrendChart data={data.charts.secondary} label="Reproducciones" />
         </Section>
-        <Section title="Seguidores por día" description="Total de seguidores de cada día; se guarda desde que conectaste la Página." className="lg:col-span-2">
+        <Section title="Minutos de video vistos por día" description="Tiempo total que la gente pasó viendo tus videos ese día.">
+          <TrendChart data={data.charts.tertiary ?? []} label="Minutos" />
+        </Section>
+        <Section title="Seguidores por día" description="Total de seguidores de cada día; se guarda desde que conectaste la Página.">
           <TrendChart data={data.followers} label="Seguidores" />
         </Section>
       </div>

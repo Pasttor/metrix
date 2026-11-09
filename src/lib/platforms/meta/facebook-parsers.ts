@@ -15,6 +15,11 @@ export const FB_PAGE_DAILY_METRICS = [
   "page_post_engagements",
   "page_video_views",
   "page_media_view",
+  // Watch time (milliseconds), 30 s complete views, daily follows and unfollows.
+  "page_video_view_time",
+  "page_video_complete_views_30s",
+  "page_daily_follows_unique",
+  "page_daily_unfollows_unique",
 ];
 
 const POST_METRICS = ["post_total_media_view_unique", "post_media_view", "post_reactions_by_type_total", "post_clicks"];

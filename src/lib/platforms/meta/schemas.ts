@@ -57,6 +57,8 @@ export const igMediaSchema = z.object({
   thumbnail_url: z.string().optional(),
   media_url: z.string().optional(),
   timestamp: z.string().optional(),
+  like_count: z.number().optional(),
+  comments_count: z.number().optional(),
 });
 export type IgMedia = z.infer<typeof igMediaSchema>;
 

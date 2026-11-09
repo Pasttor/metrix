@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import ageGender from "../../../../tests/fixtures/youtube/analytics-age-gender.json";
 import daily from "../../../../tests/fixtures/youtube/analytics-channel-daily.json";
+import byContentType from "../../../../tests/fixtures/youtube/analytics-channel-by-content-type.json";
 import country from "../../../../tests/fixtures/youtube/analytics-country.json";
 import device from "../../../../tests/fixtures/youtube/analytics-device.json";
 import empty from "../../../../tests/fixtures/youtube/analytics-empty.json";
@@ -62,6 +63,8 @@ function fakeYouTube(options: FakeOptions = {}) {
       switch (params.get("dimensions")) {
         case "day":
           return json(options.emptyDaily ? empty : selectMetrics(daily, metrics));
+        case "day,creatorContentType":
+          return json(options.emptyDaily ? empty : selectMetrics(byContentType, metrics));
         case "ageGroup,gender":
           return json(ageGender);
         case "country":
@@ -149,12 +152,15 @@ describe("YouTube daily sync", () => {
     expect(dayReport.searchParams.get("ids")).toBe("channel==MINE");
     expect(dayReport.searchParams.get("startDate")).toBe("2026-11-01");
     expect(dayReport.searchParams.get("endDate")).toBe("2026-11-08");
-    expect(t.reports()).toHaveLength(1); // no audience on a Sunday
+    expect(t.reports("day,creatorContentType")).toHaveLength(1);
+    expect(t.reports()).toHaveLength(2); // no audience on a Sunday
 
     expect(t.accountMetrics.get("acc-1|2026-11-08|subscriberCount")).toBe(789);
     expect(t.accountMetrics.get("acc-1|2026-11-04|views")).toBe(1200);
     expect(t.accountMetrics.get("acc-1|2026-11-06|views")).toBe(0);
-    expect(t.accountMetrics.size).toBe(27 + 3);
+    expect(t.accountMetrics.get("acc-1|2026-11-04|views.content_type.shorts")).toBe(1100);
+    expect(t.accountMetrics.get("acc-1|2026-11-04|engagedViews.content_type.videoOnDemand")).toBe(95);
+    expect(t.accountMetrics.size).toBe(27 + 3 + 8);
 
     expect([...t.posts.values()].map((post) => [post.externalId, post.type])).toEqual([
       ["vidLong00001", "video"],
@@ -164,7 +170,7 @@ describe("YouTube daily sync", () => {
     expect(t.postMetrics.get("post-vidLong00001|2026-11-08|viewCount")).toBe(15230);
     expect(t.postMetrics.has("post-vidShort0001|2026-11-08|likeCount")).toBe(false);
     expect(t.postMetrics.size).toBe(8);
-    expect(result.rowsWritten).toBe(30 + 3 + 8);
+    expect(result.rowsWritten).toBe(30 + 8 + 3 + 8);
   });
 
   it("does not duplicate rows when it runs twice", async () => {

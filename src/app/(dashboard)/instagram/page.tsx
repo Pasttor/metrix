@@ -76,6 +76,16 @@ async function InstagramDashboard({ searchParams }: { searchParams: PageProps<"/
         </Section>
       </div>
 
+{data.breakdowns.some((breakdown) => breakdown.rows.length > 0) ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {data.breakdowns.map((breakdown) => (
+            <Section key={breakdown.title} title={breakdown.title} description={breakdown.description}>
+              <ShareBars rows={breakdown.rows} valueLabel="cuentas" />
+            </Section>
+          ))}
+        </div>
+      ) : null}
+
       <Section title="Publicaciones" description="Haz clic en una publicación para ver su crecimiento y sus métricas completas.">
         {data.posts.length > 0 ? (
           <PostTable

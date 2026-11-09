@@ -7,7 +7,10 @@ import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/typ
 import { createMetaClient, isMetaAuthError, isMetaRejected, type MetaClient } from "./client";
 import { fetchInsights, isBeforeConversion, isNoInsights, type InsightsContext } from "./insights";
 import {
+  breakdownValues,
   demographicRows,
+  IG_ACCOUNT_BREAKDOWNS,
+  mediaCounterMetrics,
   IG_ACCOUNT_DAILY_METRICS,
   IG_DEMOGRAPHIC_BREAKDOWNS,
   insightValues,
@@ -26,7 +29,7 @@ export const IG_BACKFILL_DAYS = 90;
 /** Posts younger than this get fresh insights every day; older ones weekly. */
 export const IG_RECENT_POST_DAYS = 30;
 
-const MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,thumbnail_url,media_url,timestamp";
+const MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,thumbnail_url,media_url,timestamp,like_count,comments_count";
 const STEPS = ["profile", "account", "media", "stories", "demographics"] as const;
 type Step = (typeof STEPS)[number];
 
@@ -163,6 +166,11 @@ export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
           };
           const values = insightValues(await insights(`${igId}/insights`, params, IG_ACCOUNT_DAILY_METRICS, "cuenta"));
           const rows = [...values].map(([metric, value]) => ({ date: day, metric, value }));
+          // Same day split by format (Reels / posts / stories) and by followers vs non-followers.
+          for (const { breakdown, label, metrics } of IG_ACCOUNT_BREAKDOWNS) {
+            const split = await insights(`${igId}/insights`, { ...params, breakdown }, metrics, `cuenta por ${label}`);
+            rows.push(...breakdownValues(split, label).map((entry) => ({ date: day, ...entry })));
+          }
           if (rows.length > 0) rowsWritten += await deps.store.upsertAccountMetrics(account.id, rows);
         }
       }
@@ -170,6 +178,12 @@ export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
       if (step === "media") {
         const items = await graph.getAll(`${igId}/media`, { fields: MEDIA_FIELDS, limit: "100" }, igMediaSchema, "meta.ig.media");
         const ids = await deps.store.upsertPosts(account.id, items.map(mediaToPost));
+        // like_count / comments_count come with the list: a daily counter for every post, old ones included.
+        const counters = items.flatMap((media) => {
+          const postId = ids.get(media.id);
+          return postId ? mediaCounterMetrics(media).map((row) => ({ postId, ...row })) : [];
+        });
+        if (counters.length > 0 && !resumeHere) rowsWritten += await deps.store.upsertPostMetrics(reportDate, counters);
         if (!resumeHere) rowsWritten += ids.size;
         const recentSince = now.getTime() - IG_RECENT_POST_DAYS * 86_400_000;
         const targets = fullPostRefresh

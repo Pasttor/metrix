@@ -5,6 +5,7 @@ import { getEnv } from "@/lib/env";
 import type { Range } from "@/lib/range";
 import { getAccount, latestMetricDate, loadLatestAudience, loadMetricRows, loadPosts, loadPostWithSnapshots, loadRecentSnapshots, type Db } from "./data";
 import { periodEndingOn, type Period } from "./period";
+import { breakdownShares, type BreakdownShare } from "./series";
 import { computeKpis, dailySeries, latestAnalyticsDate, subscriberSeries, type Kpi, type SeriesPoint, type SubscriberPoint } from "./youtube";
 import { buildAudience, buildVideoRows, viewGrowth, type Audience, type GrowthPoint, type VideoRow } from "./youtube-content";
 
@@ -22,10 +23,20 @@ export async function getYouTubeAccount(db?: Db): Promise<YouTubeAccount | null>
   return getAccount(db ?? (await createClient()), "youtube");
 }
 
+const CONTENT_TYPE_LABELS: Record<string, string> = {
+  shorts: "Shorts",
+  videoOnDemand: "Videos",
+  liveStream: "Directos",
+  story: "Historias",
+};
+
 export type YouTubeOverview = {
   period: Period;
   kpis: Kpi[];
   views: SeriesPoint[];
+  engagedViews: SeriesPoint[];
+  /** Views of the period by content type (Shorts, videos, lives). */
+  contentTypes: BreakdownShare[];
   subscribers: SubscriberPoint[];
   hasData: boolean;
 };
@@ -41,6 +52,8 @@ export async function getYouTubeOverview(accountId: string, range: Range): Promi
     period,
     kpis: computeKpis(rows, period),
     views: dailySeries(rows, "views", period),
+    engagedViews: dailySeries(rows, "engagedViews", period),
+    contentTypes: breakdownShares(rows, "views", "content_type", period.start, period.end, CONTENT_TYPE_LABELS),
     // Subscriber snapshots are taken today, ahead of the analytics lag.
     subscribers: subscriberSeries(rows, { start: period.start, end: today }),
     hasData: latestAnalyticsDate(rows) !== null || rows.some((row) => row.metric === "subscriberCount"),

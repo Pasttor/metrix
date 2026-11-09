@@ -8,6 +8,7 @@ insert into public.metric_catalog
 values
   -- YouTube: channel (YouTube Analytics, dimensions=day)
   ('youtube', 'account', 'views', 'views', 'Vistas', 'Vistas del canal en el día', 'count'),
+  ('youtube', 'account', 'engagedViews', null, 'Vistas comprometidas', 'En Shorts, vistas comparables con las antiguas (no cuentan los primeros cuadros)', 'count'),
   ('youtube', 'account', 'estimatedMinutesWatched', 'watch_time_minutes', 'Minutos vistos', 'Tiempo de visualización estimado', 'minutes'),
   ('youtube', 'account', 'averageViewDuration', 'avg_view_duration_seconds', 'Duración media de vista', 'Segundos promedio por vista', 'seconds'),
   ('youtube', 'account', 'averageViewPercentage', null, 'Porcentaje medio visto', 'Porcentaje promedio del video que se ve', 'percent'),
@@ -28,6 +29,7 @@ values
   ('youtube', 'post', 'estimatedMinutesWatched', 'watch_time_minutes', 'Minutos vistos', 'Acumulado del video', 'minutes'),
   ('youtube', 'post', 'averageViewDuration', 'avg_view_duration_seconds', 'Duración media de vista', null, 'seconds'),
   ('youtube', 'post', 'averageViewPercentage', null, 'Porcentaje medio visto', null, 'percent'),
+  ('youtube', 'post', 'engagedViews', null, 'Vistas comprometidas', 'Acumulado del video', 'count'),
   -- YouTube: audience (últimos 28 días)
   ('youtube', 'audience', 'viewerPercentage', null, 'Porcentaje de espectadores', 'Por edad y género', 'percent'),
   ('youtube', 'audience', 'views', null, 'Vistas', 'Por país, dispositivo o fuente de tráfico', 'count'),
@@ -65,6 +67,8 @@ values
   ('instagram', 'post', 'replies', null, 'Respuestas', 'Solo historias', 'count'),
   ('instagram', 'post', 'navigation', null, 'Navegación', 'Solo historias', 'count'),
   ('instagram', 'post', 'link_clicks', null, 'Clics en enlace', 'Solo historias', 'count'),
+  ('instagram', 'post', 'like_count', 'likes', 'Me gusta (contador)', 'Contador público, para todas las publicaciones', 'count'),
+  ('instagram', 'post', 'comments_count', 'comments', 'Comentarios (contador)', 'Contador público, para todas las publicaciones', 'count'),
   -- Instagram: audience
   ('instagram', 'audience', 'follower_demographics', null, 'Demografía de seguidores', 'Requiere 100 o más seguidores', 'count'),
 
@@ -75,6 +79,10 @@ values
   ('facebook', 'account', 'page_post_engagements', 'interactions', 'Interacciones con publicaciones', null, 'count'),
   ('facebook', 'account', 'page_video_views', null, 'Reproducciones de video', null, 'count'),
   ('facebook', 'account', 'page_media_view', 'views', 'Vistas', 'Veces que se vio contenido de la Página (reemplaza a las impresiones)', 'count'),
+  ('facebook', 'account', 'page_video_view_time', null, 'Tiempo de video visto', 'La API lo entrega en milisegundos', 'milliseconds'),
+  ('facebook', 'account', 'page_video_complete_views_30s', null, 'Vistas completas de 30 s', null, 'count'),
+  ('facebook', 'account', 'page_daily_follows_unique', null, 'Nuevos seguidores', 'Estimado', 'count'),
+  ('facebook', 'account', 'page_daily_unfollows_unique', null, 'Dejaron de seguir', 'Estimado', 'count'),
   -- Facebook: posts
   ('facebook', 'post', 'post_total_media_view_unique', 'reach', 'Espectadores únicos', null, 'count'),
   ('facebook', 'post', 'post_reactions_by_type_total', null, 'Reacciones por tipo', null, 'count'),
