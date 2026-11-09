@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AccountSyncActions } from "@/components/connections/account-sync-actions";
 import { ConnectionCard } from "@/components/connections/connection-card";
 import { ConnectionNotice } from "@/components/connections/connection-notice";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
 import { listConnectionCards } from "@/lib/connections";
 import { getEnv } from "@/lib/env";
 import { hasSyncer } from "@/lib/sync/registry";
@@ -48,9 +49,12 @@ function CardsSkeleton() {
 export default function ConnectionsPage() {
   return (
     <>
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Conexiones</h1>
-        <p className="text-sm text-muted-foreground">Cuentas conectadas y estado de la sincronización</p>
+      <header className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Conexiones</h1>
+          <p className="text-sm text-muted-foreground">Cuentas conectadas y estado de la sincronización</p>
+        </div>
+        <SettingsTabs active="/settings/connections" />
       </header>
       <Suspense fallback={null}>
         <ConnectionNotice />

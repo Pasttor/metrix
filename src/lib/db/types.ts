@@ -143,6 +143,62 @@ export type Database = {
           },
         ]
       }
+      competitor_snapshots: {
+        Row: {
+          competitor_id: string
+          date: string
+          metric: string
+          value: number
+        }
+        Insert: {
+          competitor_id: string
+          date: string
+          metric: string
+          value: number
+        }
+        Update: {
+          competitor_id?: string
+          date?: string
+          metric?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_snapshots_competitor_id_fkey"
+            columns: ["competitor_id"]
+            isOneToOne: false
+            referencedRelation: "competitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitors: {
+        Row: {
+          added_at: string
+          avatar_url: string | null
+          id: string
+          name: string | null
+          platform: string
+          username: string
+        }
+        Insert: {
+          added_at?: string
+          avatar_url?: string | null
+          id?: string
+          name?: string | null
+          platform: string
+          username: string
+        }
+        Update: {
+          added_at?: string
+          avatar_url?: string | null
+          id?: string
+          name?: string | null
+          platform?: string
+          username?: string
+        }
+        Relationships: []
+      }
       metric_catalog: {
         Row: {
           deprecated_at: string | null
@@ -235,6 +291,38 @@ export type Database = {
           },
         ]
       }
+      post_audience_snapshots: {
+        Row: {
+          captured_on: string
+          dimension: string
+          key: string
+          post_id: string
+          value: number
+        }
+        Insert: {
+          captured_on: string
+          dimension: string
+          key: string
+          post_id: string
+          value: number
+        }
+        Update: {
+          captured_on?: string
+          dimension?: string
+          key?: string
+          post_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_audience_snapshots_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_metric_snapshots: {
         Row: {
           captured_on: string
@@ -257,6 +345,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "post_metric_snapshots_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_metrics_daily: {
+        Row: {
+          date: string
+          metric: string
+          post_id: string
+          value: number
+        }
+        Insert: {
+          date: string
+          metric: string
+          post_id: string
+          value: number
+        }
+        Update: {
+          date?: string
+          metric?: string
+          post_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_metrics_daily_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"

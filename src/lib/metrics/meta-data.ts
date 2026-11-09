@@ -7,6 +7,7 @@ import type { Range } from "@/lib/range";
 import type { RetentionCache } from "@/lib/sync/metrics-store";
 import { getAccount, latestMetricDate, loadLatestAudience, loadMetricRows, loadPosts, loadPostWithSnapshots, loadRecentSnapshots, type DashboardAccount } from "./data";
 import { buildFollowerDemographics, computeFacebookKpis, computeInstagramKpis, followerSeries, type FollowerDemographics } from "./meta";
+import { getCompetitorComparison, type ComparisonRow } from "./competitors-data";
 import { periodEndingOn, type Period } from "./period";
 import { latestValuesByPost, percentOf, postTitle, type PostTableRow } from "./posts";
 import { breakdownShares, dailySeries, type BreakdownShare, type SeriesPoint } from "./series";
@@ -51,7 +52,12 @@ export type MetaDashboard = {
   hasData: boolean;
 };
 
-export type InstagramDashboard = MetaDashboard & { demographics: FollowerDemographics; audienceDate: string | null; historyStart: string };
+export type InstagramDashboard = MetaDashboard & {
+  demographics: FollowerDemographics;
+  audienceDate: string | null;
+  historyStart: string;
+  competitors: ComparisonRow[];
+};
 
 async function loadOverview(accountId: string, anchorMetric: string, range: Range) {
   const db = await createClient();
@@ -66,7 +72,7 @@ export async function getInstagramDashboard(range: Range): Promise<InstagramDash
   const account = await getAccount(await createClient(), "instagram");
   if (!account) return null;
   const { db, today, period, rows } = await loadOverview(account.id, "views", range);
-  const [posts, audience] = await Promise.all([loadPosts(db, account.id), loadLatestAudience(db, account.id)]);
+  const [posts, audience, competitors] = await Promise.all([loadPosts(db, account.id), loadLatestAudience(db, account.id), getCompetitorComparison()]);
   const values = latestValuesByPost(await loadRecentSnapshots(db, account.id, IG_POST_METRICS));
 
   return {
@@ -111,6 +117,7 @@ export async function getInstagramDashboard(range: Range): Promise<InstagramDash
       };
     }),
     demographics: buildFollowerDemographics(audience.records),
+    competitors,
     audienceDate: audience.date,
     // Instagram keeps 90 days of account insights before the connection date.
     historyStart: addDays(dateInTimeZone(new Date(account.connectedAt), getEnv().REPORT_TIMEZONE), -90),

@@ -28,6 +28,13 @@ export type RetentionCache = {
 
 export type PostMetricValue = { postId: string; metric: string; value: number };
 export type AudienceValue = { dimension: AudienceDimension; key: string; value: number };
+/** A post's value on a given day from analytics (not cumulative). */
+export type PostDailyValue = { postId: string; date: string; metric: string; value: number };
+export type PostAudienceDimension = "traffic_source" | "country" | "age_gender" | "search_term" | "city" | "device";
+export type PostAudienceValue = { postId: string; dimension: PostAudienceDimension; key: string; value: number };
+
+export type Competitor = { id: string; username: string };
+
 export type StoredPost = { id: string; externalId: string; publishedAt: string | null };
 
 export interface MetricsStore {
@@ -36,6 +43,16 @@ export interface MetricsStore {
   upsertPosts(accountId: string, posts: PostUpsert[]): Promise<Map<string, string>>;
   upsertPostMetrics(capturedOn: string, rows: PostMetricValue[]): Promise<number>;
   upsertAudience(accountId: string, date: string, rows: AudienceValue[]): Promise<number>;
+  upsertPostDailyMetrics?(rows: PostDailyValue[]): Promise<number>;
+  /** Lifetime breakdowns of posts (sources, countries, search terms...) as of `capturedOn`. */
+  upsertPostAudience?(capturedOn: string, rows: PostAudienceValue[]): Promise<number>;
+  listCompetitors?(platform: "instagram"): Promise<Competitor[]>;
+  saveCompetitorSnapshot?(
+    competitorId: string,
+    date: string,
+    profile: { name: string | null; avatarUrl: string | null },
+    rows: { metric: string; value: number }[],
+  ): Promise<number>;
   /** Posts published at or after `since`. */
   listPostsSince(accountId: string, since: Date): Promise<StoredPost[]>;
   /** Saves details that come from a separate call: video length and the retention curve (merged into raw). */

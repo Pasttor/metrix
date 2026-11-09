@@ -10,6 +10,8 @@ import metricRejected from "../../../../tests/fixtures/meta/error-metric-rejecte
 import notEnoughViewers from "../../../../tests/fixtures/meta/error-not-enough-viewers.json";
 import tokenExpired from "../../../../tests/fixtures/meta/error-token-expired.json";
 import beforeConversion from "../../../../tests/fixtures/meta/error-before-conversion.json";
+import businessDiscovery from "../../../../tests/fixtures/meta/ig-business-discovery.json";
+import personalAccount from "../../../../tests/fixtures/meta/error-business-discovery-personal.json";
 import type { Json } from "@/lib/db/types";
 import { ReauthRequiredError } from "@/lib/oauth/token-store";
 import type { MetricsStore, PostUpsert } from "@/lib/sync/metrics-store";
@@ -33,6 +35,7 @@ type Options = {
   authError?: boolean;
   demographics?: unknown;
   beforeConversion?: string[];
+  competitors?: string[];
 };
 
 function fakeGraph(options: Options = {}) {
@@ -45,6 +48,9 @@ function fakeGraph(options: Options = {}) {
     const headers: Record<string, string> = options.usageHeader ? { "x-business-use-case-usage": options.usageHeader } : {};
     if (options.authError) return json(tokenExpired, 400);
 
+    if (path === IG.externalId && params.get("fields")?.startsWith("business_discovery")) {
+      return params.get("fields")!.includes("(personal.account)") ? json(personalAccount, 400) : json(businessDiscovery, 200, headers);
+    }
     if (path === IG.externalId) return json(profile, 200, headers);
     if (path === `${IG.externalId}/media`) return json(media, 200, headers);
     if (path === `${IG.externalId}/stories`) return json(options.stories ?? { data: [] }, 200, headers);
@@ -77,12 +83,22 @@ function fakeGraph(options: Options = {}) {
   return { fetch: fetch as typeof globalThis.fetch, calls, insightCalls };
 }
 
-function memoryStore() {
+function memoryStore(competitorUsernames: string[] = ["finanzasparatodos"]) {
   const accountMetrics = new Map<string, number>();
   const posts = new Map<string, PostUpsert & { id: string }>();
   const postMetrics = new Map<string, number>();
   const audience = new Map<string, number>();
+  const competitorRows = new Map<string, number>();
+  const competitorProfiles = new Map<string, unknown>();
   const store: MetricsStore = {
+    async listCompetitors() {
+      return competitorUsernames.map((username, i) => ({ id: `c${i + 1}`, username }));
+    },
+    async saveCompetitorSnapshot(id, date, profile, rows) {
+      competitorProfiles.set(id, profile);
+      for (const row of rows) competitorRows.set(`${id}|${date}|${row.metric}`, row.value);
+      return rows.length;
+    },
     async upsertAccountMetrics(accountId, rows) {
       for (const row of rows) accountMetrics.set(`${row.date}|${row.metric}`, row.value);
       return rows.length;
@@ -107,12 +123,12 @@ function memoryStore() {
       return [];
     },
   };
-  return { store, accountMetrics, posts, postMetrics, audience };
+  return { store, accountMetrics, posts, postMetrics, audience, competitorRows, competitorProfiles };
 }
 
 function setup(options: Options = {}) {
   const graph = fakeGraph(options);
-  const memory = memoryStore();
+  const memory = memoryStore(options.competitors);
   const markReauthRequired = vi.fn(async () => undefined);
   const syncer = createInstagramSyncer({
     getAccessToken: async () => "EAApage",
@@ -174,6 +190,16 @@ describe("Instagram daily sync", () => {
     expect(t.postMetrics.get("post-18000000000000001|2026-11-08|reels_skip_rate")).toBe(44.7);
     expect(t.audience.size).toBe(0);
     expect(result.quotaUnits).toBe(t.calls.length);
+  });
+
+  it("snapshots each competitor daily and warns about accounts Meta will not show", async () => {
+    const t = setup({ competitors: ["finanzasparatodos", "personal.account"] });
+    const result = await t.run();
+    const call = t.calls.find((url) => url.searchParams.get("fields")?.includes("username(finanzasparatodos)"))!;
+    expect(call.searchParams.get("fields")).toContain("media.limit(25){timestamp,like_count,comments_count,media_product_type}");
+    expect(t.competitorRows.get("c1|2026-11-08|followers_count")).toBe(10000);
+    expect(t.competitorProfiles.get("c1")).toEqual({ name: "Finanzas para todos", avatarUrl: "https://scontent.cdninstagram.com/comp.jpg" });
+    expect(result.warnings).toEqual([expect.stringContaining("@personal.account no disponible")]);
   });
 
   it("on Mondays refreshes every post and saves follower demographics when Meta returns them", async () => {

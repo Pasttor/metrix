@@ -5,6 +5,7 @@ import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
 import type { MetricsStore, PostMetricValue } from "@/lib/sync/metrics-store";
 import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
 import { createMetaClient, isMetaAuthError, isMetaRejected, type MetaClient } from "./client";
+import { competitorMetrics, competitorProfile, fetchCompetitor, isUnavailableCompetitor } from "./competitors";
 import { fetchInsights, isBeforeConversion, isNoInsights, type InsightsContext } from "./insights";
 import {
   breakdownValues,
@@ -30,7 +31,7 @@ export const IG_BACKFILL_DAYS = 90;
 export const IG_RECENT_POST_DAYS = 30;
 
 const MEDIA_FIELDS = "id,caption,media_type,media_product_type,permalink,thumbnail_url,media_url,timestamp,like_count,comments_count";
-const STEPS = ["profile", "account", "media", "stories", "demographics"] as const;
+const STEPS = ["profile", "account", "media", "stories", "demographics", "competitors"] as const;
 type Step = (typeof STEPS)[number];
 
 const cursorSchema = z.object({ step: z.enum(STEPS), from: z.iso.date().optional(), index: z.number().int().min(0).optional() });
@@ -48,7 +49,7 @@ export type InstagramSyncDeps = {
 
 export function instagramStepsFor(job: AccountSyncInput["job"], reportDate: string): Step[] {
   if (job === "backfill" || isMonday(reportDate)) return [...STEPS];
-  return ["profile", "account", "media", "stories"];
+  return ["profile", "account", "media", "stories", "competitors"];
 }
 
 export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
@@ -225,6 +226,19 @@ export function createInstagramSyncer(deps: InstagramSyncDeps): Syncer {
           rows.push(...demographicRows(data, dimension));
         }
         if (rows.length > 0) rowsWritten += await deps.store.upsertAudience(account.id, reportDate, rows);
+      }
+
+      if (step === "competitors" && deps.store.listCompetitors && deps.store.saveCompetitorSnapshot) {
+        // One business_discovery call per tracked account; a bad username only warns.
+        for (const competitor of await deps.store.listCompetitors("instagram")) {
+          try {
+            const discovery = await fetchCompetitor(graph, igId, competitor.username);
+            rowsWritten += await deps.store.saveCompetitorSnapshot(competitor.id, reportDate, competitorProfile(discovery), competitorMetrics(discovery, now));
+          } catch (error) {
+            if (!isUnavailableCompetitor(error)) throw error;
+            warnings.add(`competidor @${competitor.username} no disponible (${error.code || "400"}): debe ser cuenta de empresa o creador`);
+          }
+        }
       }
     }
 

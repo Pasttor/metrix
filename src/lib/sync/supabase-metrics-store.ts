@@ -73,6 +73,48 @@ export function supabaseMetricsStore(db: AdminClient, now: () => Date = () => ne
       return unique.length;
     },
 
+    async upsertPostDailyMetrics(rows) {
+      const unique = dedupe(rows, (row) => `${row.postId}|${row.date}|${row.metric}`);
+      for (const batch of chunks(unique)) {
+        const { error } = await db.from("post_metrics_daily").upsert(
+          batch.map((row) => ({ post_id: row.postId, date: row.date, metric: row.metric, value: row.value })),
+          { onConflict: "post_id,date,metric" },
+        );
+        if (error) fail("post_metrics_daily.upsert", error);
+      }
+      return unique.length;
+    },
+
+    async upsertPostAudience(capturedOn, rows) {
+      const unique = dedupe(rows, (row) => `${row.postId}|${row.dimension}|${row.key}`);
+      for (const batch of chunks(unique)) {
+        const { error } = await db.from("post_audience_snapshots").upsert(
+          batch.map((row) => ({ post_id: row.postId, captured_on: capturedOn, dimension: row.dimension, key: row.key, value: row.value })),
+          { onConflict: "post_id,captured_on,dimension,key" },
+        );
+        if (error) fail("post_audience_snapshots.upsert", error);
+      }
+      return unique.length;
+    },
+
+    async listCompetitors(platform) {
+      const { data, error } = await db.from("competitors").select("id, username").eq("platform", platform).order("added_at");
+      if (error) fail("competitors.list", error);
+      return data;
+    },
+
+    async saveCompetitorSnapshot(competitorId, date, profile, rows) {
+      const { error: profileError } = await db.from("competitors").update({ name: profile.name, avatar_url: profile.avatarUrl }).eq("id", competitorId);
+      if (profileError) fail("competitors.profile", profileError);
+      if (rows.length === 0) return 0;
+      const { error } = await db.from("competitor_snapshots").upsert(
+        rows.map((row) => ({ competitor_id: competitorId, date, metric: row.metric, value: row.value })),
+        { onConflict: "competitor_id,date,metric" },
+      );
+      if (error) fail("competitor_snapshots.upsert", error);
+      return rows.length;
+    },
+
     async upsertAudience(accountId, date, rows) {
       const unique = dedupe(rows, (row) => `${row.dimension}|${row.key}`);
       for (const batch of chunks(unique)) {

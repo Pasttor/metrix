@@ -1,0 +1,25 @@
+{
+  "kind": "youtubeAnalytics#resultTable",
+  "columnHeaders": [
+    {
+      "name": "insightTrafficSourceDetail",
+      "columnType": "DIMENSION",
+      "dataType": "STRING"
+    },
+    {
+      "name": "views",
+      "columnType": "METRIC",
+      "dataType": "INTEGER"
+    }
+  ],
+  "rows": [
+    [
+      "por que quebro blockbuster",
+      14
+    ],
+    [
+      "empresas en quiebra",
+      6
+    ]
+  ]
+}

@@ -7,6 +7,7 @@ import device from "../../../../tests/fixtures/youtube/analytics-device.json";
 import empty from "../../../../tests/fixtures/youtube/analytics-empty.json";
 import badRequest from "../../../../tests/fixtures/youtube/analytics-error-bad-request.json";
 import traffic from "../../../../tests/fixtures/youtube/analytics-traffic-source.json";
+import searchTerms from "../../../../tests/fixtures/youtube/analytics-video-search-terms.json";
 import lifetime from "../../../../tests/fixtures/youtube/analytics-video-lifetime.json";
 import channels from "../../../../tests/fixtures/youtube/channels-list.json";
 import playlistPage1 from "../../../../tests/fixtures/youtube/playlist-items-page1.json";
@@ -75,6 +76,8 @@ function fakeYouTube(options: FakeOptions = {}) {
           return json(traffic);
         case "video":
           return json(selectMetrics(lifetime, metrics));
+        case "insightTrafficSourceDetail":
+          return json(searchTerms);
       }
     }
     throw new Error(`unexpected fetch ${url}`);
@@ -90,7 +93,17 @@ function memoryStore() {
   const posts = new Map<string, PostUpsert & { id: string }>();
   const postMetrics = new Map<string, number>();
   const audience = new Map<string, number>();
+  const postDaily = new Map<string, number>();
+  const postAudience = new Map<string, number>();
   const store: MetricsStore = {
+    async upsertPostDailyMetrics(rows) {
+      for (const row of rows) postDaily.set(`${row.postId}|${row.date}|${row.metric}`, row.value);
+      return rows.length;
+    },
+    async upsertPostAudience(capturedOn, rows) {
+      for (const row of rows) postAudience.set(`${row.postId}|${capturedOn}|${row.dimension}|${row.key}`, row.value);
+      return rows.length;
+    },
     async upsertAccountMetrics(accountId, rows) {
       for (const row of rows) accountMetrics.set(`${accountId}|${row.date}|${row.metric}`, row.value);
       return rows.length;
@@ -120,7 +133,7 @@ function memoryStore() {
         .sort((a, b) => b.publishedAt!.localeCompare(a.publishedAt!));
     },
   };
-  return { store, accountMetrics, posts, postMetrics, audience };
+  return { store, accountMetrics, posts, postMetrics, audience, postDaily, postAudience };
 }
 
 function setup(options: FakeOptions & { monetary?: boolean; getAccessToken?: AccessTokenGetter } = {}) {
@@ -199,6 +212,30 @@ describe("YouTube daily sync", () => {
     expect(videoQuery.searchParams.get("startDate")).toBe("2026-10-20");
     expect(t.postMetrics.get("post-vidLong00001|2026-11-09|estimatedMinutesWatched")).toBe(61200);
     expect(t.postMetrics.has("post-vidOld000001|2026-11-09|estimatedMinutesWatched")).toBe(false);
+  });
+
+  it("on Mondays saves each recent video's daily series, sources, countries, age and search terms", async () => {
+    const t = setup();
+    await t.run({ now: MONDAY });
+    const videoDaily = t.reports("day").filter((url) => url.searchParams.get("filters") === "video==vidLong00001");
+    expect(videoDaily).toHaveLength(1);
+    expect(videoDaily[0].searchParams.get("startDate")).toBe("2026-11-01"); // publish day (PT) minus one
+    expect(t.postDaily.get("post-vidLong00001|2026-11-04|views")).toBe(1200);
+    const searchCall = t.reports("insightTrafficSourceDetail")[0];
+    expect(searchCall.searchParams.get("filters")).toBe("video==vidLong00001;insightTrafficSourceType==YT_SEARCH");
+    expect(t.postAudience.get("post-vidLong00001|2026-11-09|search_term|por que quebro blockbuster")).toBe(14);
+    expect(t.postAudience.get("post-vidLong00001|2026-11-09|country|MX")).toBe(8120);
+    expect(t.postAudience.get("post-vidLong00001|2026-11-09|age_gender|age25-34|male")).toBe(38.1);
+    expect(t.postAudience.get("post-vidLong00001|2026-11-09|traffic_source|SHORTS")).toBe(5100);
+    // The old video (2024) is outside the 90-day weekly window.
+    expect(t.reports().some((url) => url.searchParams.get("filters")?.startsWith("video==vidOld000001"))).toBe(false);
+  });
+
+  it("does nothing per video on other days", async () => {
+    const t = setup();
+    await t.run();
+    expect(t.postDaily.size).toBe(0);
+    expect(t.postAudience.size).toBe(0);
   });
 
   it("turns a metric the API rejects into a warning and keeps the others", async () => {
@@ -283,8 +320,10 @@ describe("YouTube backfill", () => {
     const result = await t.run({ job: "backfill" });
     expect(result.done).toBe(true);
 
-    const blocks = t.reports("day");
+    const blocks = t.reports("day").filter((url) => !url.searchParams.has("filters"));
     expect(blocks).toHaveLength(Math.ceil((daysBetween(created, end) + 1) / BACKFILL_CHUNK_DAYS));
+    // Backfill also covers every video, old ones included.
+    expect(t.reports("day").filter((url) => url.searchParams.has("filters"))).toHaveLength(3);
     expect(blocks[0].searchParams.get("startDate")).toBe(created);
     expect(blocks[0].searchParams.get("endDate")).toBe(addDays(created, BACKFILL_CHUNK_DAYS - 1));
     expect(blocks[1].searchParams.get("startDate")).toBe(addDays(created, BACKFILL_CHUNK_DAYS));

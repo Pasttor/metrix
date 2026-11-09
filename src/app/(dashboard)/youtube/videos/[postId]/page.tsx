@@ -6,8 +6,11 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { z } from "zod";
 import { Section } from "@/components/metrics/section";
 import { Stat } from "@/components/metrics/stat";
+import { ShareBars } from "@/components/metrics/share-bars";
+import { TrendChart } from "@/components/metrics/trend-chart";
+import { AgeGenderChart } from "@/components/youtube/age-gender-chart";
 import { RetentionChart, ViewGrowthChart } from "@/components/youtube/video-charts";
-import { formatDate, formatDuration, formatHours, formatNumber, formatPercent } from "@/lib/format";
+import { formatDate, formatDuration, formatHours, formatNumber, formatPercent, formatShortDate } from "@/lib/format";
 import { getVideoDetail } from "@/lib/metrics/youtube-data";
 import { loadRetention } from "@/lib/metrics/youtube-retention";
 import { parseRange, RANGE_PARAM, withRange } from "@/lib/range";
@@ -68,15 +71,46 @@ async function VideoDetail({ params, searchParams }: Pick<Props, "params" | "sea
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Vistas nuevas por día" description="Diferencia entre las fotos diarias del contador de vistas.">
-          <ViewGrowthChart data={video.growth} />
-        </Section>
+        {video.daily.views.length > 0 ? (
+          <Section title="Vistas por día" description="Desde la publicación, según YouTube Analytics (se actualiza cada lunes).">
+            <TrendChart data={video.daily.views} label="Vistas" />
+          </Section>
+        ) : (
+          <Section title="Vistas nuevas por día" description="Diferencia entre las fotos diarias del contador de vistas.">
+            <ViewGrowthChart data={video.growth} />
+          </Section>
+        )}
         <Section title="Retención de audiencia" description="Qué porcentaje de la audiencia sigue viendo en cada segundo del video. Úsala para ver dónde se cae el hook o el guion.">
           <Suspense fallback={<div className="h-56 animate-pulse rounded-lg bg-muted" />}>
             <Retention postId={video.id} durationSeconds={video.durationSeconds} />
           </Suspense>
         </Section>
       </div>
+      {video.audienceDate ? (
+        <>
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">De dónde viene y quién lo ve</h2>
+            <p className="text-sm text-muted-foreground">
+              Desde la publicación hasta el {formatShortDate(video.audienceDate, true)}. Se actualiza cada lunes.
+              {video.daily.subscribersGained !== null ? ` Este video te dio ${formatNumber(video.daily.subscribersGained)} suscriptores.` : ""}
+            </p>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Section title="Términos de búsqueda en YouTube" description="Lo que escribió la gente que encontró el video en la búsqueda. Úsalo para títulos y descripciones.">
+              <ShareBars rows={video.audience.searchTerms} />
+            </Section>
+            <Section title="Fuentes de tráfico" description="Porcentaje de vistas.">
+              <ShareBars rows={video.audience.trafficSources} />
+            </Section>
+            <Section title="Países" description="Porcentaje de vistas.">
+              <ShareBars rows={video.audience.countries} />
+            </Section>
+            <Section title="Edad y género" description="Porcentaje de espectadores con sesión iniciada.">
+              <AgeGenderChart rows={video.audience.ageGender} />
+            </Section>
+          </div>
+        </>
+      ) : null}
       <p className="text-xs text-muted-foreground">
         Horas vistas, duración y porcentaje medio son acumulados de YouTube Analytics y se actualizan cada lunes para videos de los
         últimos 90 días.

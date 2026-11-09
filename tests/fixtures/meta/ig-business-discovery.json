@@ -1,0 +1,117 @@
+{
+  "business_discovery": {
+    "username": "finanzasparatodos",
+    "name": "Finanzas para todos",
+    "profile_picture_url": "https://scontent.cdninstagram.com/comp.jpg",
+    "followers_count": 10000,
+    "media_count": 420,
+    "media": {
+      "data": [
+        {
+          "timestamp": "2026-11-07T12:00:00+0000",
+          "like_count": 100,
+          "comments_count": 5,
+          "media_product_type": "REELS",
+          "id": "m0"
+        },
+        {
+          "timestamp": "2026-11-06T12:00:00+0000",
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m1"
+        },
+        {
+          "timestamp": "2026-11-04T12:00:00+0000",
+          "like_count": 120,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m2"
+        },
+        {
+          "timestamp": "2026-11-02T12:00:00+0000",
+          "like_count": 130,
+          "comments_count": 5,
+          "media_product_type": "REELS",
+          "id": "m3"
+        },
+        {
+          "timestamp": "2026-10-30T12:00:00+0000",
+          "like_count": 140,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m4"
+        },
+        {
+          "timestamp": "2026-10-27T12:00:00+0000",
+          "like_count": 150,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m5"
+        },
+        {
+          "timestamp": "2026-10-24T12:00:00+0000",
+          "like_count": 160,
+          "comments_count": 5,
+          "media_product_type": "REELS",
+          "id": "m6"
+        },
+        {
+          "timestamp": "2026-10-19T12:00:00+0000",
+          "like_count": 170,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m7"
+        },
+        {
+          "timestamp": "2026-10-14T12:00:00+0000",
+          "like_count": 180,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m8"
+        },
+        {
+          "timestamp": "2026-10-11T12:00:00+0000",
+          "like_count": 190,
+          "comments_count": 5,
+          "media_product_type": "REELS",
+          "id": "m9"
+        },
+        {
+          "timestamp": "2026-10-04T12:00:00+0000",
+          "like_count": 200,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m10"
+        },
+        {
+          "timestamp": "2026-09-29T12:00:00+0000",
+          "like_count": 210,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m11"
+        },
+        {
+          "timestamp": "2026-09-24T12:00:00+0000",
+          "like_count": 220,
+          "comments_count": 5,
+          "media_product_type": "REELS",
+          "id": "m12"
+        },
+        {
+          "timestamp": "2026-09-09T12:00:00+0000",
+          "like_count": 230,
+          "comments_count": 5,
+          "media_product_type": "FEED",
+          "id": "m13"
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "after": "x"
+        }
+      }
+    },
+    "id": "17841400000000099"
+  },
+  "id": "17841400000000001"
+}

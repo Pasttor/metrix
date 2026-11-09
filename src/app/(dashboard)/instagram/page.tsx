@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { CompetitorTable } from "@/components/metrics/competitor-table";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { DashboardSkeleton } from "@/components/metrics/dashboard-skeleton";
 import { KpiCards } from "@/components/metrics/kpi-cards";
@@ -97,6 +99,20 @@ async function InstagramDashboard({ searchParams }: { searchParams: PageProps<"/
         ) : (
           <p className="text-sm text-muted-foreground">Sin publicaciones todavía.</p>
         )}
+      </Section>
+
+      <Section
+        title="Competencia"
+        description="Tu cuenta junto a las cuentas que sigues (datos públicos). Me gusta y comentarios promedio de las últimas 12 publicaciones."
+      >
+        {data.competitors.length > 1 ? (
+          <CompetitorTable rows={data.competitors} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Agrega cuentas de tu nicho para compararte con ellas.</p>
+        )}
+        <Link href="/settings/competitors" className="w-fit text-sm font-medium underline underline-offset-4">
+          Administrar competidores
+        </Link>
       </Section>
 
       <div className="flex flex-col gap-1">

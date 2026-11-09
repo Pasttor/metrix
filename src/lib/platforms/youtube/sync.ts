@@ -2,7 +2,7 @@ import { z } from "zod";
 import { addDays, dateInTimeZone, daysBetween, isMonday, minDate } from "@/lib/dates";
 import type { FetchFn, RetryOptions } from "@/lib/platforms/http";
 import { HttpError } from "@/lib/platforms/http";
-import type { MetricsStore } from "@/lib/sync/metrics-store";
+import type { MetricsStore, PostAudienceValue, StoredPost } from "@/lib/sync/metrics-store";
 import type { AccessTokenGetter } from "@/lib/oauth/token-store";
 import type { AccountSyncInput, AccountSyncResult, Syncer } from "@/lib/sync/types";
 import { createYouTubeClient, VIDEOS_PER_REQUEST, type AnalyticsQuery, type YouTubeClient } from "./client";
@@ -46,15 +46,31 @@ export const AUDIENCE_WINDOW_DAYS = 28;
 export const RECENT_VIDEO_DAYS = 90;
 const YOUTUBE_LAUNCH = "2005-04-23";
 
-const STEPS = ["snapshot", "analytics", "videos", "weekly"] as const;
+const STEPS = ["snapshot", "analytics", "videos", "weekly", "videoAnalytics"] as const;
 type Step = (typeof STEPS)[number];
 
 const cursorSchema = z.object({
   step: z.enum(STEPS),
   from: z.iso.date().optional(),
   pageToken: z.string().optional(),
+  index: z.number().int().min(0).optional(),
 });
 type Cursor = z.infer<typeof cursorSchema>;
+
+/** Per-video daily series (from Analytics, not cumulative). */
+export const VIDEO_DAILY_METRICS = [
+  "views",
+  "engagedViews",
+  "estimatedMinutesWatched",
+  "averageViewDuration",
+  "averageViewPercentage",
+  "subscribersGained",
+  "likes",
+  "comments",
+  "shares",
+];
+/** How many countries / search terms to keep per video. */
+export const VIDEO_TOP_N = 25;
 
 export type YouTubeSyncDeps = {
   getAccessToken: AccessTokenGetter;
@@ -71,8 +87,8 @@ export type YouTubeSyncDeps = {
  * Backfill: channel analytics since creation in 1-year blocks, then the same.
  */
 export function stepsFor(job: AccountSyncInput["job"], reportDate: string): Step[] {
-  if (job === "backfill") return ["analytics", "snapshot", "videos", "weekly"];
-  return isMonday(reportDate) ? ["snapshot", "analytics", "videos", "weekly"] : ["snapshot", "analytics", "videos"];
+  if (job === "backfill") return ["analytics", "snapshot", "videos", "weekly", "videoAnalytics"];
+  return isMonday(reportDate) ? ["snapshot", "analytics", "videos", "weekly", "videoAnalytics"] : ["snapshot", "analytics", "videos"];
 }
 
 export function isUnauthorized(error: unknown): boolean {
@@ -198,6 +214,17 @@ export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
           await syncAudience();
           await syncRecentVideos();
         }
+
+        if (step === "videoAnalytics") {
+          // Backfill: every video; weekly: videos of the last 90 days.
+          const since = job === "backfill" ? new Date(0) : new Date(now.getTime() - RECENT_VIDEO_DAYS * 86_400_000);
+          const posts = await deps.store.listPostsSince(account.id, since);
+          const start = resumeHere?.index ?? 0;
+          for (let i = start; i < posts.length; i++) {
+            if (i > start && shouldStop()) return result(false, { step, index: i }, i / posts.length);
+            await syncVideoAnalytics(posts[i]);
+          }
+        }
       }
 
       return result(true);
@@ -253,6 +280,47 @@ export function createYouTubeSyncer(deps: YouTubeSyncDeps): Syncer {
           );
         }
         if (rows.length > 0) rowsWritten += await deps.store.upsertAudience(account.id, reportDate, rows);
+      }
+
+      /**
+       * One video's Analytics since it was published: its daily series, and
+       * its lifetime traffic sources, countries, age/gender and YouTube search terms.
+       */
+      async function syncVideoAnalytics(post: StoredPost) {
+        if (!deps.store.upsertPostDailyMetrics || !deps.store.upsertPostAudience) return;
+        const published = post.publishedAt ? addDays(dateInTimeZone(new Date(post.publishedAt), ANALYTICS_TIME_ZONE), -1) : createdOn;
+        const startDate = published < createdOn ? createdOn : published;
+        if (startDate > analyticsEnd) return;
+        const video = `video==${post.externalId}`;
+        const base = { startDate, endDate: analyticsEnd };
+
+        const daily = await queryMetrics({ ...base, dimensions: ["day"], filters: video, sort: "day" }, VIDEO_DAILY_METRICS, dailyMetricsFromReport);
+        if (daily.length > 0) {
+          rowsWritten += await deps.store.upsertPostDailyMetrics(daily.map((row) => ({ postId: post.id, ...row })));
+        }
+
+        const breakdowns = [
+          { dimension: "traffic_source" as const, columns: ["insightTrafficSourceType"], metric: "views", filters: video },
+          { dimension: "country" as const, columns: ["country"], metric: "views", filters: video, sort: "-views", maxResults: VIDEO_TOP_N },
+          { dimension: "age_gender" as const, columns: ["ageGroup", "gender"], metric: "viewerPercentage", filters: video },
+          {
+            dimension: "search_term" as const,
+            columns: ["insightTrafficSourceDetail"],
+            metric: "views",
+            filters: `${video};insightTrafficSourceType==YT_SEARCH`,
+            sort: "-views",
+            maxResults: VIDEO_TOP_N,
+          },
+        ];
+        const audience: PostAudienceValue[] = [];
+        for (const breakdown of breakdowns) {
+          const query = { ...base, dimensions: breakdown.columns, filters: breakdown.filters, sort: breakdown.sort, maxResults: breakdown.maxResults };
+          const rows = await queryMetrics(query, [breakdown.metric], (report) =>
+            audienceFromReport(report, breakdown.dimension, breakdown.columns, breakdown.metric),
+          );
+          audience.push(...rows.map((row) => ({ postId: post.id, ...row })));
+        }
+        if (audience.length > 0) rowsWritten += await deps.store.upsertPostAudience(reportDate, audience);
       }
 
       async function syncRecentVideos() {

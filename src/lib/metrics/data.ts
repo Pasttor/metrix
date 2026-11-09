@@ -185,3 +185,31 @@ export async function loadPostWithSnapshots(db: Db, postId: string, platform: Ac
     raw: post.raw,
   };
 }
+
+/** A post's daily analytics series (not cumulative), oldest first. */
+export async function loadPostDaily(db: Db, postId: string): Promise<MetricRow[]> {
+  const rows = await selectAll("post_metrics_daily.post", (from, to) =>
+    db.from("post_metrics_daily").select("date, metric, value").eq("post_id", postId).order("date").order("metric").range(from, to),
+  );
+  return rows.map((row) => ({ date: row.date, metric: row.metric, value: Number(row.value) }));
+}
+
+/** The latest per-post breakdown snapshot (sources, countries, age/gender, search terms). */
+export async function loadPostAudience(db: Db, postId: string): Promise<{ date: string | null; records: AudienceRecord[] }> {
+  const { data: latest, error } = await db
+    .from("post_audience_snapshots")
+    .select("captured_on")
+    .eq("post_id", postId)
+    .order("captured_on", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) fail("post_audience_snapshots.latest", error);
+  if (!latest) return { date: null, records: [] };
+  const { data, error: rowsError } = await db
+    .from("post_audience_snapshots")
+    .select("dimension, key, value")
+    .eq("post_id", postId)
+    .eq("captured_on", latest.captured_on);
+  if (rowsError) fail("post_audience_snapshots.list", rowsError);
+  return { date: latest.captured_on, records: data.map((row) => ({ ...row, value: Number(row.value) })) };
+}

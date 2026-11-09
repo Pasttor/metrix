@@ -2,7 +2,7 @@ import type { AnalyticsReport, Channel, Video } from "./schemas";
 
 /** Rows ready for the long-format tables (account/post ids filled in by the syncer). */
 export type DailyMetric = { date: string; metric: string; value: number };
-export type AudienceRow = { dimension: "age_gender" | "country" | "device" | "traffic_source"; key: string; value: number };
+export type AudienceRow<D extends string = "age_gender" | "country" | "device" | "traffic_source"> = { dimension: D; key: string; value: number };
 export type PostInput = {
   externalId: string;
   type: "video" | "short";
@@ -135,12 +135,12 @@ export function videoMetricsFromReport(report: AnalyticsReport): PostMetric[] {
 }
 
 /** Audience breakdown report (one or two dimensions and one metric) as audience rows. */
-export function audienceFromReport(
+export function audienceFromReport<D extends string>(
   report: AnalyticsReport,
-  dimension: AudienceRow["dimension"],
+  dimension: D,
   keyColumns: string[],
   metric: string,
-): AudienceRow[] {
+): AudienceRow<D>[] {
   return reportRecords(report).flatMap((record) => {
     const parts = keyColumns.map((column) => record[column]);
     const value = toNumber(record[metric]);

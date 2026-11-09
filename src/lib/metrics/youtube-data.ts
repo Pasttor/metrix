@@ -3,11 +3,31 @@ import { dateInTimeZone } from "@/lib/dates";
 import { createClient } from "@/lib/db/server";
 import { getEnv } from "@/lib/env";
 import type { Range } from "@/lib/range";
-import { getAccount, latestMetricDate, loadLatestAudience, loadMetricRows, loadPosts, loadPostWithSnapshots, loadRecentSnapshots, type Db } from "./data";
+import {
+  getAccount,
+  latestMetricDate,
+  loadLatestAudience,
+  loadMetricRows,
+  loadPostAudience,
+  loadPostDaily,
+  loadPosts,
+  loadPostWithSnapshots,
+  loadRecentSnapshots,
+  type Db,
+} from "./data";
 import { periodEndingOn, type Period } from "./period";
 import { breakdownShares, type BreakdownShare } from "./series";
 import { computeKpis, dailySeries, latestAnalyticsDate, subscriberSeries, type Kpi, type SeriesPoint, type SubscriberPoint } from "./youtube";
-import { buildAudience, buildVideoRows, viewGrowth, type Audience, type GrowthPoint, type VideoRow } from "./youtube-content";
+import {
+  buildAudience,
+  buildVideoRows,
+  viewGrowth,
+  type Audience,
+  type AudienceRecord,
+  type GrowthPoint,
+  type ShareRow,
+  type VideoRow,
+} from "./youtube-content";
 
 /** YouTube dashboard reads, from the database with the user's session (RLS). */
 
@@ -88,14 +108,33 @@ export type VideoDetail = {
   /** Latest lifetime Analytics values (refreshed weekly for recent videos). */
   lifetime: { estimatedMinutesWatched: number | null; averageViewDuration: number | null; averageViewPercentage: number | null };
   latest: { views: number | null; likes: number | null; comments: number | null };
+  /** Daily Analytics series since publication (weekly refresh). */
+  daily: { views: SeriesPoint[]; engagedViews: SeriesPoint[]; subscribersGained: number | null };
+  /** Lifetime breakdowns of the video as of `audienceDate`. */
+  audience: Audience & { searchTerms: ShareRow[] };
+  audienceDate: string | null;
 };
 
 const LIFETIME = ["estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage"] as const;
 
+function searchTermRows(records: AudienceRecord[]): ShareRow[] {
+  const terms = records.filter((record) => record.dimension === "search_term");
+  const total = terms.reduce((sum, record) => sum + record.value, 0);
+  return terms
+    .map((record) => ({ key: record.key, label: record.key, value: record.value, share: total ? record.value / total : 0 }))
+    .sort((a, b) => b.value - a.value);
+}
+
 export async function getVideoDetail(postId: string): Promise<VideoDetail | null> {
-  const found = await loadPostWithSnapshots(await createClient(), postId, "youtube");
+  const db = await createClient();
+  const found = await loadPostWithSnapshots(db, postId, "youtube");
   if (!found) return null;
   const { post, snapshots } = found;
+  const [dailyRows, postAudience] = await Promise.all([loadPostDaily(db, postId), loadPostAudience(db, postId)]);
+  const first = dailyRows[0]?.date;
+  const last = dailyRows.at(-1)?.date;
+  const range = first && last ? { start: first, end: last } : null;
+  const subscribers = dailyRows.filter((row) => row.metric === "subscribersGained");
   const latestOf = (metric: string) => {
     const rows = snapshots.filter((row) => row.metric === metric);
     return rows.length ? rows[rows.length - 1].value : null;
@@ -112,5 +151,12 @@ export async function getVideoDetail(postId: string): Promise<VideoDetail | null
     growth: viewGrowth(snapshots.filter((row) => row.metric === "viewCount")),
     lifetime: Object.fromEntries(LIFETIME.map((metric) => [metric, latestOf(metric)])) as VideoDetail["lifetime"],
     latest: { views: latestOf("viewCount"), likes: latestOf("likeCount"), comments: latestOf("commentCount") },
+    daily: {
+      views: range ? dailySeries(dailyRows, "views", range) : [],
+      engagedViews: range ? dailySeries(dailyRows, "engagedViews", range) : [],
+      subscribersGained: subscribers.length ? subscribers.reduce((sum, row) => sum + row.value, 0) : null,
+    },
+    audience: { ...buildAudience(postAudience.records), searchTerms: searchTermRows(postAudience.records) },
+    audienceDate: postAudience.date,
   };
 }
