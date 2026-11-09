@@ -120,8 +120,8 @@ export default function HealthPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Salud</h1>
           <p className="text-sm text-muted-foreground">
-            Corridas de sincronización y estado de las cuentas. Si una cuenta necesita reconectarse o una corrida falla, Metrix te avisa por correo (como
-            máximo un correo por cuenta al día).
+            Corridas de sincronización y estado de las cuentas. Si una cuenta necesita reconectarse o una corrida falla, aparece en Alertas (como
+            máximo una vez al día por cuenta).
           </p>
         </div>
         <SettingsTabs active="/settings/health" />

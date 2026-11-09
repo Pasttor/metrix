@@ -1,5 +1,5 @@
 import "server-only";
-import { checkAndSendAlerts } from "@/lib/alerts-server";
+import { recordAlerts } from "@/lib/notifications";
 import { isAuthorizedUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/db/admin";
 import { getEnv } from "@/lib/env";
@@ -9,7 +9,7 @@ import { getSyncer } from "./registry";
 import { supabaseSyncRepo } from "./supabase-repo";
 
 export function cronDeps(): CronDeps {
-  return { repo: supabaseSyncRepo(createAdminClient()), getSyncer, cronSecret: getEnv().CRON_SECRET, afterRun: checkAndSendAlerts };
+  return { repo: supabaseSyncRepo(createAdminClient()), getSyncer, cronSecret: getEnv().CRON_SECRET, afterRun: recordAlerts };
 }
 
 export function backfillDeps(): BackfillDeps {

@@ -89,8 +89,8 @@ export async function processStoryInsights(
   insights: StoryInsight[],
   store: WebhookStore,
   capturedOn: string,
-): Promise<{ applied: number; skipped: number }> {
-  let applied = 0;
+): Promise<{ applied: { postId: string; mediaId: string; metrics: StoryInsight["metrics"] }[]; skipped: number }> {
+  const applied: { postId: string; mediaId: string; metrics: StoryInsight["metrics"] }[] = [];
   let skipped = 0;
   for (const insight of insights) {
     const accountId = await store.findAccountId(insight.igUserId);
@@ -102,7 +102,28 @@ export async function processStoryInsights(
     const publishedAt = insight.time ? new Date((insight.time - 86_400) * 1000).toISOString() : null;
     const postId = await store.ensureStoryPost(accountId, insight.mediaId, publishedAt);
     await store.upsertPostMetrics(capturedOn, insight.metrics.map((row) => ({ postId, ...row })));
-    applied += 1;
+    applied.push({ postId, mediaId: insight.mediaId, metrics: insight.metrics });
   }
   return { applied, skipped };
+}
+
+/** An in-app event for each story whose final insights arrived (one per story). */
+export function storyNotifications(applied: { postId: string; mediaId: string; metrics: StoryInsight["metrics"] }[]) {
+  return applied.map(({ postId, mediaId, metrics }) => {
+    const value = (name: string) => metrics.find((row) => row.metric === name)?.value;
+    const parts = [
+      ["alcance", value("reach")],
+      ["vistas", value("views") ?? value("impressions")],
+      ["respuestas", value("replies")],
+      ["navegación", value("navigation")],
+    ].flatMap(([label, n]) => (typeof n === "number" ? [`${label} ${n.toLocaleString("es-MX")}`] : []));
+    return {
+      kind: "story_insights",
+      severity: "info" as const,
+      title: "Llegaron las métricas finales de una historia",
+      message: parts.length ? `Instagram: ${parts.join(" · ")}.` : "Instagram envió las métricas finales de una historia.",
+      href: `/instagram/posts/${postId}`,
+      dedupe_key: `story:${mediaId}`,
+    };
+  });
 }

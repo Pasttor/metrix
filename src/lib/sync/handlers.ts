@@ -34,7 +34,7 @@ export function summarizeRun(result: RunSyncResult) {
 
 export type CronDeps = RunSyncDeps & {
   cronSecret: string;
-  /** Runs after each cron sync (alert emails); its failure never fails the cron. */
+  /** Runs after each cron sync (in-app alerts); its failure never fails the cron. */
   afterRun?: () => Promise<unknown>;
 };
 

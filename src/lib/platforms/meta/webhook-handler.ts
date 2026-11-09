@@ -1,6 +1,7 @@
 import { dateInTimeZone } from "@/lib/dates";
 import type { Json } from "@/lib/db/types";
-import { isValidSignature, parseStoryInsights, processStoryInsights, verifySubscription, type WebhookStore } from "./webhook";
+import type { NotificationRow } from "@/lib/alerts";
+import { isValidSignature, parseStoryInsights, processStoryInsights, storyNotifications, verifySubscription, type WebhookStore } from "./webhook";
 
 export type WebhookDeps = {
   appSecret: string | undefined;
@@ -9,6 +10,8 @@ export type WebhookDeps = {
   store: WebhookStore;
   saveEvent: (payload: Json) => Promise<string>;
   finishEvent: (id: string, error: string | null) => Promise<void>;
+  /** In-app events (story insights received). */
+  notify?: (rows: NotificationRow[]) => Promise<void>;
   /** Runs work after the response is sent (next/server `after` in production). */
   defer: (task: () => Promise<void>) => void;
   now?: () => Date;
@@ -45,7 +48,8 @@ export async function handleWebhookEvent(request: Request, deps: WebhookDeps): P
   deps.defer(async () => {
     try {
       const capturedOn = dateInTimeZone(deps.now?.() ?? new Date(), deps.reportTimeZone);
-      await processStoryInsights(parseStoryInsights(payload), deps.store, capturedOn);
+      const { applied } = await processStoryInsights(parseStoryInsights(payload), deps.store, capturedOn);
+      if (applied.length > 0) await deps.notify?.(storyNotifications(applied));
       await deps.finishEvent(eventId, null);
     } catch (error) {
       const reason = error instanceof Error ? error.name : "unknown";

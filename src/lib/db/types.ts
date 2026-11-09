@@ -232,6 +232,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          dedupe_key: string | null
+          href: string | null
+          id: string
+          kind: string
+          message: string
+          read_at: string | null
+          severity: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          dedupe_key?: string | null
+          href?: string | null
+          id?: string
+          kind: string
+          message: string
+          read_at?: string | null
+          severity: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          dedupe_key?: string | null
+          href?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          read_at?: string | null
+          severity?: string
+          title?: string
+        }
+        Relationships: []
+      }
       oauth_states: {
         Row: {
           code_verifier: string | null

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { AlertsBell, AlertsBellFallback } from "@/components/dashboard/alerts-bell";
 import { RangeSelector, RangeSelectorFallback } from "@/components/dashboard/range-selector";
 import { SidebarNav, SidebarNavFallback } from "@/components/dashboard/sidebar-nav";
 import { UserMenu } from "@/components/dashboard/user-menu";
@@ -28,6 +29,9 @@ export default function DashboardLayout({ children }: LayoutProps<"/">) {
             <RangeSelector />
           </Suspense>
           <div className="flex items-center gap-1">
+            <Suspense fallback={<AlertsBellFallback />}>
+              <AlertsBell />
+            </Suspense>
             <ThemeToggle />
             <Suspense fallback={null}>
               <UserMenu />

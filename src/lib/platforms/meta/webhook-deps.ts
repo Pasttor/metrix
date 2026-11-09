@@ -2,6 +2,7 @@ import "server-only";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getEnv } from "@/lib/env";
+import { insertNotifications } from "@/lib/notifications";
 import { supabaseMetricsStore } from "@/lib/sync/supabase-metrics-store";
 import type { WebhookDeps } from "./webhook-handler";
 
@@ -18,6 +19,7 @@ export function webhookDeps(): WebhookDeps {
     verifyToken: env.META_WEBHOOK_VERIFY_TOKEN,
     reportTimeZone: env.REPORT_TIMEZONE,
     defer: (task) => after(task),
+    notify: insertNotifications,
     async saveEvent(payload) {
       const { data, error } = await db.from("webhook_events").insert({ platform: "meta", payload }).select("id").single();
       if (error || !data) fail("webhook_events.insert", error ?? {});

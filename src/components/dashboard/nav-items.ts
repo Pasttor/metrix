@@ -1,4 +1,4 @@
-import { Camera, CirclePlay, FileText, LayoutDashboard, Music2, Settings, ThumbsUp, type LucideIcon } from "lucide-react";
+import { Bell, Camera, CirclePlay, FileText, LayoutDashboard, Music2, Settings, ThumbsUp, type LucideIcon } from "lucide-react";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 
@@ -9,6 +9,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/facebook", label: "Facebook", icon: ThumbsUp },
   { href: "/tiktok", label: "TikTok", icon: Music2 },
   { href: "/reportes", label: "Reportes", icon: FileText },
+  { href: "/alertas", label: "Alertas", icon: Bell },
   { href: "/settings", label: "Configuración", icon: Settings },
 ];
 

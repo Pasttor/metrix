@@ -15,6 +15,7 @@ function setup(options: { knownAccount?: boolean; existingPost?: boolean } = {})
   const posts = new Map<string, { accountId: string; publishedAt: string | null }>();
   if (options.existingPost) posts.set("18000000000000009", { accountId: "acc-ig", publishedAt: "2026-11-07T10:00:00Z" });
   const deferred: (() => Promise<void>)[] = [];
+  const notifications: { dedupe_key: string; message: string; href: string | null }[] = [];
   const store: WebhookStore = {
     findAccountId: async (igUserId) => ((options.knownAccount ?? true) && igUserId === "17841400000000001" ? "acc-ig" : null),
     ensureStoryPost: async (accountId, mediaId, publishedAt) => {
@@ -41,6 +42,9 @@ function setup(options: { knownAccount?: boolean; existingPost?: boolean } = {})
     defer: (task) => {
       deferred.push(task);
     },
+    notify: async (rows) => {
+      notifications.push(...rows);
+    },
     now: () => new Date("2026-11-09T18:00:00Z"),
   };
   const post = (body: string, signature: string | null) =>
@@ -51,7 +55,7 @@ function setup(options: { knownAccount?: boolean; existingPost?: boolean } = {})
   const flush = async () => {
     while (deferred.length) await deferred.shift()!();
   };
-  return { deps, events, finished, metrics, posts, post, flush };
+  return { deps, events, finished, metrics, posts, post, flush, notifications };
 }
 
 describe("subscription check", () => {
@@ -120,6 +124,13 @@ describe("POST /api/webhooks/meta", () => {
     expect(t.metrics.get("post-18000000000000009|2026-11-09|reach")).toBe(44);
     expect(t.metrics.get("post-18000000000000009|2026-11-09|navigation")).toBe(10);
     expect(t.finished).toEqual([{ id: "evt-1", error: null }]);
+    expect(t.notifications).toEqual([
+      expect.objectContaining({
+        dedupe_key: "story:18000000000000009",
+        href: "/instagram/posts/post-18000000000000009",
+        message: "Instagram: alcance 44 · vistas 444 · respuestas 0 · navegación 10.",
+      }),
+    ]);
     // Story not seen by the daily sync: created, published ~24 h before Meta's time.
     expect(t.posts.get("18000000000000009")).toEqual({ accountId: "acc-ig", publishedAt: new Date((1794200000 - 86400) * 1000).toISOString() });
   });
@@ -150,6 +161,7 @@ describe("POST /api/webhooks/meta", () => {
     await t.flush();
     expect(t.metrics.size).toBe(0);
     expect(t.finished).toEqual([{ id: "evt-1", error: null }]);
+    expect(t.notifications).toEqual([]);
   });
 
   it("answers 503 without an app secret", async () => {
