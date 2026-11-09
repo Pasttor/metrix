@@ -95,8 +95,9 @@ export type Reports = {
   seo: { terms: SearchTermRow[]; videos: SeoVideo[] };
 };
 
-export async function getReports(): Promise<Reports> {
-  const db = await createClient();
+/** `client`: the MCP server passes its service client; the dashboard reads with the session. */
+export async function getReports(client?: Db): Promise<Reports> {
+  const db = client ?? (await createClient());
   const posts: ReportPost[] = [];
   let youtubeAccountId: string | null = null;
 

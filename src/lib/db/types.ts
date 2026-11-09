@@ -199,6 +199,144 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_auth_codes: {
+        Row: {
+          client_id: string
+          code_challenge: string
+          code_hash: string
+          created_at: string
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          used_at: string | null
+        }
+        Insert: {
+          client_id: string
+          code_challenge: string
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          redirect_uri: string
+          scope: string
+          used_at?: string | null
+        }
+        Update: {
+          client_id?: string
+          code_challenge?: string
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          redirect_uri?: string
+          scope?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_auth_codes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_clients: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string | null
+          redirect_uris: string[]
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          kind: string
+          name?: string | null
+          redirect_uris: string[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string | null
+          redirect_uris?: string[]
+        }
+        Relationships: []
+      }
+      mcp_grants: {
+        Row: {
+          client_id: string
+          client_name: string | null
+          created_at: string
+          id: string
+          last_used_at: string | null
+          revoked_at: string | null
+          scope: string
+        }
+        Insert: {
+          client_id: string
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          scope: string
+        }
+        Update: {
+          client_id?: string
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          revoked_at?: string | null
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_grants_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mcp_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          grant_id: string
+          kind: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          grant_id: string
+          kind: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          grant_id?: string
+          kind?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcp_tokens_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "mcp_grants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metric_catalog: {
         Row: {
           deprecated_at: string | null

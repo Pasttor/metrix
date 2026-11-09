@@ -4,6 +4,7 @@ const TABS = [
   { href: "/settings/connections", label: "Conexiones" },
   { href: "/settings/competitors", label: "Competencia" },
   { href: "/settings/health", label: "Salud" },
+  { href: "/settings/claude", label: "Claude" },
 ];
 
 export function SettingsTabs({ active }: { active: string }) {

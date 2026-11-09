@@ -4,7 +4,7 @@ import { createClient } from "@/lib/db/server";
 import { getEnv } from "@/lib/env";
 import type { AccountPlatform } from "@/lib/oauth/types";
 import type { Range } from "@/lib/range";
-import { fail, getAccount, loadMetricRows, loadPosts, loadRecentSnapshots } from "./data";
+import { fail, getAccount, loadMetricRows, loadPosts, loadRecentSnapshots, type Db } from "./data";
 import { periodEndingOn, type Period } from "./period";
 import { latestValuesByPost, postTitle } from "./posts";
 import { MetricIndex, type SeriesPoint } from "./series";
@@ -57,8 +57,9 @@ export type Overview = {
   heatmap: { all: HeatmapCell[] | null; byNetwork: Record<string, HeatmapCell[] | null>; posts: number };
 };
 
-export async function getOverview(range: Range): Promise<Overview> {
-  const db = await createClient();
+/** `client`: the MCP server passes its service client; the dashboard reads with the session. */
+export async function getOverview(range: Range, client?: Db): Promise<Overview> {
+  const db = client ?? (await createClient());
   const timeZone = getEnv().REPORT_TIMEZONE;
   const today = dateInTimeZone(new Date(), timeZone);
 

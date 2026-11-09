@@ -67,6 +67,11 @@ export default function PrivacyPage() {
         <li>Las métricas se guardan en una base de datos de Supabase con acceso restringido al dueño (seguridad a nivel de fila).</li>
         <li>Los tokens de acceso se guardan cifrados con AES-256-GCM y nunca se envían al navegador.</li>
         <li>
+          Si el dueño conecta un asistente de IA (por ejemplo, Claude) mediante el servidor MCP de Metrix, ese asistente puede leer los datos
+          guardados y programar publicaciones solo después de que el dueño lo autorice con su sesión, y el acceso se puede quitar en cualquier
+          momento desde Configuración → Claude.
+        </li>
+        <li>
           De cada publicación programada se guardan el texto, la fecha, el identificador y el nombre del archivo de Drive, y el resultado en cada
           red. El video pasa directo de Google Drive a cada red y no se almacena.
         </li>

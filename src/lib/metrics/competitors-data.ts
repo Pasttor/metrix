@@ -1,7 +1,7 @@
 import "server-only";
 import { addDays } from "@/lib/dates";
 import { createClient } from "@/lib/db/server";
-import { fail, getAccount, loadMetricRows, loadPosts, loadRecentSnapshots } from "./data";
+import { fail, getAccount, loadMetricRows, loadPosts, loadRecentSnapshots, type Db } from "./data";
 import { latestValuesByPost } from "./posts";
 import { MetricIndex, snapshotOnOrBefore } from "./series";
 
@@ -33,8 +33,8 @@ function engagementOf(followers: number | null, likes: number | null, comments: 
   return followers && (likes !== null || comments !== null) ? (((likes ?? 0) + (comments ?? 0)) / followers) * 100 : null;
 }
 
-export async function getCompetitorComparison(): Promise<ComparisonRow[]> {
-  const db = await createClient();
+export async function getCompetitorComparison(client?: Db): Promise<ComparisonRow[]> {
+  const db = client ?? (await createClient());
   const [competitors, own] = await Promise.all([
     db.from("competitors").select("id, username, name, avatar_url").eq("platform", "instagram").order("added_at"),
     getAccount(db, "instagram"),
