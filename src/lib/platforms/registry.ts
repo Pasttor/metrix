@@ -1,6 +1,7 @@
 import { getEnv } from "@/lib/env";
 import type { PlatformConnector } from "@/lib/oauth/connector";
 import type { ConnectPlatform } from "@/lib/oauth/types";
+import { createDriveConnector } from "./drive/connector";
 import { createMetaConnector } from "./meta/connector";
 import { createTikTokConnector } from "./tiktok/connector";
 import { createYouTubeConnector } from "./youtube/connector";
@@ -33,6 +34,11 @@ const factories: Partial<Record<ConnectPlatform, () => PlatformConnector | null>
     const env = getEnv();
     if (!env.TIKTOK_CLIENT_KEY || !env.TIKTOK_CLIENT_SECRET) return null;
     return createTikTokConnector({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET, publish: env.TIKTOK_PUBLISH });
+  },
+  drive() {
+    const env = getEnv();
+    if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) return null;
+    return createDriveConnector({ clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET });
   },
 };
 

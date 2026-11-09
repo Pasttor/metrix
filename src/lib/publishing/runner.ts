@@ -53,7 +53,7 @@ export type PublishRunDeps = {
   store: PublishStore;
   publishers: Record<PublishPlatform, Publisher>;
   getAccessToken: PublishContext["getAccessToken"];
-  /** Account whose Google token (with drive.file) downloads the videos: the YouTube connection. */
+  /** Account whose Google token (drive.file) downloads the videos: the Google Drive connection. */
   getDriveAccountId: () => Promise<string | null>;
   notify: (rows: NotificationRow[]) => Promise<void>;
   fetch?: FetchFn;
@@ -166,7 +166,7 @@ export async function runPublish(deps: PublishRunDeps): Promise<PublishRunResult
   let cached = null as { postId: string; get: () => Promise<Uint8Array> } | null;
 
   const download = async (target: ClaimedTarget): Promise<Uint8Array> => {
-    if (!driveAccountId) throw new PublishError("Conecta YouTube (incluye el acceso a Google Drive) para poder descargar los videos.");
+    if (!driveAccountId) throw new PublishError("Conecta Google Drive en Configuración → Conexiones para poder descargar los videos.");
     const get = async (forceRefresh: boolean) =>
       downloadDriveFile(target.video.driveFileId, await deps.getAccessToken(driveAccountId, { forceRefresh }), fetchFn);
     try {

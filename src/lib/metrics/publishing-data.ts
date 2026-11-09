@@ -41,6 +41,16 @@ export async function listPublishAccounts(): Promise<PublishAccount[]> {
   return data.map((row) => ({ id: row.id, platform: row.platform as PublishPlatform, name: row.name, handle: row.handle }));
 }
 
+export type DriveAccount = { id: string; email: string | null; status: string };
+
+/** The Google Drive connection the videos come from (the first one, if several). */
+export async function getDriveAccount(): Promise<DriveAccount | null> {
+  const db = await createClient();
+  const { data, error } = await db.from("accounts").select("id, name, status").eq("platform", "drive").order("connected_at").limit(1).maybeSingle();
+  if (error) fail("accounts.drive", error);
+  return data ? { id: data.id, email: data.name?.includes("@") ? data.name : null, status: data.status } : null;
+}
+
 export async function listScheduledPosts(): Promise<ScheduledPost[]> {
   const db = await createClient();
   const { data, error } = await db

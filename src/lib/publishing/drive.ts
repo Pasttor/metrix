@@ -16,7 +16,7 @@ export async function downloadDriveFile(fileId: string, accessToken: string, fet
     // The caller refreshes the token once and retries.
     if (response.status === 401) throw new HttpError(401, code);
     if (response.status === 404) throw new PublishError("No se encontró el video en Google Drive (¿se borró o se movió a la papelera?).");
-    if (response.status === 403) throw new PublishError(`Google Drive no dio acceso al video (${code || "403"}). Vuelve a elegirlo desde Metrix.`);
+    if (response.status === 403) throw new PublishError(`Google Drive no dio acceso al video (${code || "403"}). Elígelo desde Metrix con la misma cuenta que conectaste en Google Drive.`);
     throw new PublishError(`Google Drive respondió ${response.status} ${code}`, response.status >= 500);
   }
   const length = Number(response.headers.get("content-length") ?? 0);

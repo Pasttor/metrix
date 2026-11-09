@@ -45,7 +45,7 @@ function deps(store: PublishStore, publishers: Partial<Record<PublishPlatform, P
       store,
       publishers: { youtube: idle, instagram: idle, facebook: idle, tiktok: idle, ...publishers },
       getAccessToken: vi.fn(async () => "token"),
-      getDriveAccountId: async () => (extra.driveAccount === undefined ? "acc-yt" : extra.driveAccount),
+      getDriveAccountId: async () => (extra.driveAccount === undefined ? "acc-drive" : extra.driveAccount),
       notify: async (rows: NotificationRow[]) => void notified.push(...rows),
       fetch: extra.fetch,
       graphVersion: "v24.0",
@@ -128,7 +128,7 @@ describe("runPublish", () => {
     const result = await runPublish(d);
     expect(result.failed).toBe(2);
     expect(saved.get("t-ig")?.error).toContain("ya no está conectada");
-    expect(saved.get("t-fb")?.error).toContain("Conecta YouTube");
+    expect(saved.get("t-fb")?.error).toContain("Conecta Google Drive");
     expect(notified.every((row) => row.kind === "publish_failed" && row.severity === "error")).toBe(true);
   });
 

@@ -32,7 +32,7 @@ export type NotificationRow = {
   dedupe_key: string;
 };
 
-const LABELS: Record<string, string> = { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", meta: "Facebook e Instagram" };
+const LABELS: Record<string, string> = { youtube: "YouTube", instagram: "Instagram", facebook: "Facebook", tiktok: "TikTok", drive: "Google Drive", meta: "Facebook e Instagram" };
 const CONNECTIONS = "/settings/connections";
 const HEALTH = "/settings/health";
 

@@ -109,7 +109,7 @@ export function publishDeps(deadline: Date): PublishRunDeps {
     publishers: PUBLISHERS,
     getAccessToken: publishTokenGetter(db),
     async getDriveAccountId() {
-      const { data, error } = await db.from("accounts").select("id").eq("platform", "youtube").eq("status", "active").order("connected_at").limit(1);
+      const { data, error } = await db.from("accounts").select("id").eq("platform", "drive").eq("status", "active").order("connected_at").limit(1);
       if (error) fail("accounts.drive", error);
       return data[0]?.id ?? null;
     },

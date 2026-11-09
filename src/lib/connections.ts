@@ -30,6 +30,7 @@ const CARDS: { platform: AccountPlatform; label: string }[] = [
   { platform: "instagram", label: "Instagram" },
   { platform: "facebook", label: "Facebook" },
   { platform: "tiktok", label: "TikTok" },
+  { platform: "drive", label: "Google Drive" },
 ];
 
 export function summarize(accounts: ConnectionAccount[]): { status: ConnectionStatus; lastSyncedAt: string | null } {

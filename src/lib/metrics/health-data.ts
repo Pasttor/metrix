@@ -67,7 +67,7 @@ export async function getHealth(): Promise<{ runs: Record<string, HealthRun[]>; 
     });
   }
 
-  const { data: accounts, error } = await db.from("accounts").select("platform, name, handle, status, last_synced_at").order("platform");
+  const { data: accounts, error } = await db.from("accounts").select("platform, name, handle, status, last_synced_at").neq("platform", "drive").order("platform");
   if (error) fail("accounts.health", error);
   return {
     runs,

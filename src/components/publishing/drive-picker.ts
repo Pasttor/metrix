@@ -4,7 +4,7 @@
  * Google Picker in the browser. The token comes from Google Identity Services
  * with only `drive.file`: it lets Metrix open the files the user picks here,
  * nothing else in their Drive. The server later downloads the picked file
- * with the YouTube connection (same Google project, same scope).
+ * with the Google Drive connection (same Google project, same account).
  */
 
 export const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -21,6 +21,7 @@ type GoogleApi = {
       initTokenClient(config: {
         client_id: string;
         scope: string;
+        login_hint?: string;
         callback: (response: TokenResponse) => void;
         error_callback?: (error: { type?: string }) => void;
       }): { requestAccessToken(options?: { prompt?: string }): void };
@@ -73,7 +74,7 @@ function loadScript(src: string): Promise<void> {
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
-async function driveToken(clientId: string): Promise<string> {
+async function driveToken(clientId: string, loginHint?: string): Promise<string> {
   if (cachedToken && cachedToken.expiresAt > Date.now()) return cachedToken.value;
   const google = globals().google;
   if (!google) throw new Error("Google no cargó.");
@@ -81,6 +82,7 @@ async function driveToken(clientId: string): Promise<string> {
     const client = google.accounts.oauth2.initTokenClient({
       client_id: clientId,
       scope: DRIVE_FILE_SCOPE,
+      login_hint: loginHint,
       callback: (response) => (response.access_token ? resolve(response.access_token) : reject(new Error("Google no dio acceso a Drive."))),
       error_callback: (error) => reject(new Error(error.type === "popup_closed" ? "Cerraste la ventana de Google." : "Google no dio acceso a Drive.")),
     });
@@ -91,12 +93,12 @@ async function driveToken(clientId: string): Promise<string> {
   return token;
 }
 
-export async function pickDriveVideo(config: { clientId: string; apiKey: string; appId: string }): Promise<PickedVideo | null> {
+export async function pickDriveVideo(config: { clientId: string; apiKey: string; appId: string; loginHint?: string }): Promise<PickedVideo | null> {
   await Promise.all([loadScript("https://accounts.google.com/gsi/client"), loadScript("https://apis.google.com/js/api.js")]);
   const { gapi } = globals();
   if (!gapi) throw new Error("Google no cargó.");
   await new Promise<void>((resolve) => gapi.load("picker", resolve));
-  const token = await driveToken(config.clientId);
+  const token = await driveToken(config.clientId, config.loginHint);
   const google = globals().google!;
 
   return new Promise<PickedVideo | null>((resolve) => {

@@ -1,9 +1,10 @@
 /** Platforms stored in `accounts.platform`. */
-export const ACCOUNT_PLATFORMS = ["youtube", "instagram", "facebook", "tiktok"] as const;
+/** "drive" is Google Drive for publishing: it is connected but never synced. */
+export const ACCOUNT_PLATFORMS = ["youtube", "instagram", "facebook", "tiktok", "drive"] as const;
 export type AccountPlatform = (typeof ACCOUNT_PLATFORMS)[number];
 
 /** OAuth providers: Meta connects both the Facebook Page and its Instagram account. */
-export const CONNECT_PLATFORMS = ["youtube", "meta", "tiktok"] as const;
+export const CONNECT_PLATFORMS = ["youtube", "meta", "tiktok", "drive"] as const;
 export type ConnectPlatform = (typeof CONNECT_PLATFORMS)[number];
 
 export function isConnectPlatform(value: string): value is ConnectPlatform {
@@ -14,6 +15,7 @@ export const ACCOUNT_PLATFORMS_BY_CONNECT: Record<ConnectPlatform, AccountPlatfo
   youtube: ["youtube"],
   meta: ["facebook", "instagram"],
   tiktok: ["tiktok"],
+  drive: ["drive"],
 };
 
 export function connectPlatformFor(platform: AccountPlatform): ConnectPlatform {

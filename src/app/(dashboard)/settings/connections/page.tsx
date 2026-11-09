@@ -26,7 +26,7 @@ async function ConnectionCards() {
             key={card.platform}
             card={card}
             timeZone={timeZone}
-            accountActions={(accountId) => {
+            accountActions={card.connectPlatform === "drive" ? undefined : (accountId) => {
               const active = card.accounts.find((account) => account.id === accountId)?.status === "active";
               const missing = tiktokMissing.get(accountId) ?? [];
               return (

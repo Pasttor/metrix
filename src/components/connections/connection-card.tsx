@@ -15,6 +15,7 @@ const CREDENTIALS_HINT: Record<ConnectionCardData["connectPlatform"], string> = 
   youtube: "Falta configurar la app de Google (GOOGLE_CLIENT_ID).",
   meta: "Falta configurar la app de Meta (META_APP_ID).",
   tiktok: "Falta configurar la app de TikTok (TIKTOK_CLIENT_KEY).",
+  drive: "Falta configurar la app de Google (GOOGLE_CLIENT_ID).",
 };
 
 export function ConnectionCard({
@@ -37,7 +38,11 @@ export function ConnectionCard({
         <div className="flex flex-col gap-1">
           <CardTitle>{card.label}</CardTitle>
           <CardDescription>
-            {card.lastSyncedAt ? `Último sync: ${formatDateTime(card.lastSyncedAt, timeZone)}` : "Sin sincronizar todavía"}
+            {card.connectPlatform === "drive"
+              ? "De aquí salen los videos que publicas. Metrix solo ve los que eliges."
+              : card.lastSyncedAt
+                ? `Último sync: ${formatDateTime(card.lastSyncedAt, timeZone)}`
+                : "Sin sincronizar todavía"}
           </CardDescription>
         </div>
         <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium", status.className)}>

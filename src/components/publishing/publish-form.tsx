@@ -11,7 +11,7 @@ import { CAPTION_LIMIT, TITLE_LIMIT, type PublishAccount } from "@/lib/publishin
 import type { PublishPlatform } from "@/lib/publishing/types";
 import { pickDriveVideo, type PickedVideo } from "./drive-picker";
 
-export type PickerConfig = { clientId: string; apiKey: string; appId: string };
+export type PickerConfig = { clientId: string; apiKey: string; appId: string; loginHint?: string };
 
 const LABELS: Record<PublishPlatform, string> = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
 const LIMITS: Partial<Record<PublishPlatform, string>> = {
@@ -29,7 +29,20 @@ function formatSize(bytes: number | null): string {
 const textareaClass =
   "min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function PublishForm({ accounts, picker, minScheduledAt, timeZoneLabel }: { accounts: PublishAccount[]; picker: PickerConfig | null; minScheduledAt: string; timeZoneLabel: string }) {
+export function PublishForm({
+  accounts,
+  picker,
+  pickerProblem,
+  minScheduledAt,
+  timeZoneLabel,
+}: {
+  accounts: PublishAccount[];
+  picker: PickerConfig | null;
+  /** Why the Picker cannot open (Drive not connected, missing keys). */
+  pickerProblem: string | null;
+  minScheduledAt: string;
+  timeZoneLabel: string;
+}) {
   const [video, setVideo] = useState<PickedVideo | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -92,13 +105,13 @@ export function PublishForm({ accounts, picker, minScheduledAt, timeZoneLabel }:
                 <span className="text-muted-foreground"> · {formatSize(video.sizeBytes)}</span>
               </span>
             ) : (
-              <span className="text-sm text-muted-foreground">Usa la misma cuenta de Google que conectaste en YouTube.</span>
+              <span className="text-sm text-muted-foreground">
+                {picker.loginHint ? `Se abre tu Drive de ${picker.loginHint}.` : "Usa la cuenta que conectaste en Google Drive."}
+              </span>
             )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Falta configurar Google Picker: agrega <code>NEXT_PUBLIC_GOOGLE_PICKER_API_KEY</code> y <code>NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER</code>.
-          </p>
+          <p className="text-sm text-muted-foreground">{pickerProblem ?? "Google Drive no está disponible."}</p>
         )}
         {pickError ? (
           <p role="alert" className="text-sm text-destructive">

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { utcToZonedInput } from "@/lib/dates";
 import { getEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
-import { listPublishAccounts, listScheduledPosts, SCHEDULED_SHOWN, type ScheduledPost, type ScheduledTarget } from "@/lib/metrics/publishing-data";
+import { getDriveAccount, listPublishAccounts, listScheduledPosts, SCHEDULED_SHOWN, type ScheduledPost, type ScheduledTarget } from "@/lib/metrics/publishing-data";
 import type { PostStatus } from "@/lib/publishing/runner";
 import { cancelPostAction, retryTargetAction } from "./actions";
 
@@ -101,15 +101,29 @@ function PostCard({ post }: { post: ScheduledPost }) {
 
 async function NewPost() {
   const env = getEnv();
-  const accounts = await listPublishAccounts();
+  const [accounts, drive] = await Promise.all([listPublishAccounts(), getDriveAccount()]);
+  const keys = env.GOOGLE_CLIENT_ID && env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY && env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER;
+  const pickerProblem = !keys
+    ? "Falta configurar Google Picker (NEXT_PUBLIC_GOOGLE_PICKER_API_KEY y NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER)."
+    : !drive
+      ? "Conecta Google Drive en Configuración → Conexiones con la cuenta donde guardas los videos."
+      : drive.status !== "active"
+        ? "Reconecta Google Drive en Configuración → Conexiones."
+        : null;
   const picker: PickerConfig | null =
-    env.GOOGLE_CLIENT_ID && env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY && env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER
-      ? { clientId: env.GOOGLE_CLIENT_ID, apiKey: env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY, appId: env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER }
+    keys && !pickerProblem
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID!,
+          apiKey: env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY!,
+          appId: env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER!,
+          loginHint: drive?.email ?? undefined,
+        }
       : null;
   return (
     <PublishForm
       accounts={accounts}
       picker={picker}
+      pickerProblem={pickerProblem}
       minScheduledAt={utcToZonedInput(new Date(), env.REPORT_TIMEZONE)}
       timeZoneLabel={env.REPORT_TIMEZONE === "America/Mexico_City" ? "hora de Ciudad de México" : env.REPORT_TIMEZONE}
     />
