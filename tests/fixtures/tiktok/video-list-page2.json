@@ -1,0 +1,21 @@
+{
+  "data": {
+    "videos": [
+      {
+        "id": "7300000000000000003",
+        "title": "Primer video",
+        "create_time": 1793000000,
+        "share_url": "https://www.tiktok.com/@casiquiebra/video/7300000000000000003",
+        "duration": 30,
+        "view_count": 200
+      }
+    ],
+    "cursor": 1793000000000,
+    "has_more": false
+  },
+  "error": {
+    "code": "ok",
+    "message": "",
+    "log_id": "y"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "data": {
+    "user": {
+      "open_id": "_000fixtureOpenId",
+      "union_id": "u1",
+      "avatar_url": "https://p16-sign.tiktokcdn.com/avatar.jpeg",
+      "display_name": "Casi Quiebra",
+      "username": "casiquiebra",
+      "follower_count": 120,
+      "following_count": 15,
+      "likes_count": 3400,
+      "video_count": 6
+    }
+  },
+  "error": {
+    "code": "ok",
+    "message": "",
+    "log_id": "20261109DEF"
+  }
+}

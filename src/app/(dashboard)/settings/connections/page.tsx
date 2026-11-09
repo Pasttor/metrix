@@ -4,6 +4,7 @@ import { AccountSyncActions } from "@/components/connections/account-sync-action
 import { ConnectionCard } from "@/components/connections/connection-card";
 import { ConnectionNotice } from "@/components/connections/connection-notice";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
+import { tiktokMissingScopes } from "@/lib/connection-scopes";
 import { listConnectionCards } from "@/lib/connections";
 import { getEnv } from "@/lib/env";
 import { hasSyncer } from "@/lib/sync/registry";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "Conexiones · Metrix" };
 export const maxDuration = 60;
 
 async function ConnectionCards() {
-  const cards = await listConnectionCards();
+  const [cards, tiktokMissing] = await Promise.all([listConnectionCards(), tiktokMissingScopes()]);
   const timeZone = getEnv().REPORT_TIMEZONE;
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -27,7 +28,17 @@ async function ConnectionCards() {
             timeZone={timeZone}
             accountActions={(accountId) => {
               const active = card.accounts.find((account) => account.id === accountId)?.status === "active";
-              return <AccountSyncActions accountId={accountId} enabled={syncAvailable && active} />;
+              const missing = tiktokMissing.get(accountId) ?? [];
+              return (
+                <div className="flex flex-col items-end gap-1">
+                  <AccountSyncActions accountId={accountId} enabled={syncAvailable && active} />
+                  {missing.length > 0 ? (
+                    <p className="text-right text-xs text-amber-700 dark:text-amber-400">
+                      Faltan permisos: {missing.join(", ")}. Reconecta y acéptalos todos.
+                    </p>
+                  ) : null}
+                </div>
+              );
             }}
           />
         );

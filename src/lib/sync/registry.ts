@@ -1,5 +1,6 @@
 import { getConnector } from "@/lib/platforms/registry";
 import { metaSyncer } from "@/lib/platforms/meta/deps";
+import { tiktokSyncer } from "@/lib/platforms/tiktok/deps";
 import { youtubeSyncer } from "@/lib/platforms/youtube/deps";
 import type { SyncPlatform, Syncer } from "./types";
 
@@ -14,6 +15,10 @@ const syncers: Partial<Record<SyncPlatform, () => Syncer | null>> = {
   },
   meta() {
     return getConnector("meta") ? metaSyncer() : null;
+  },
+  tiktok() {
+    const connector = getConnector("tiktok");
+    return connector ? tiktokSyncer(connector) : null;
   },
 };
 

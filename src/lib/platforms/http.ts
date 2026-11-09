@@ -86,6 +86,10 @@ export async function errorCode(response: Response): Promise<string> {
   const reason = error?.errors?.[0]?.reason;
   if (typeof reason === "string") return reason.slice(0, 64);
   if (typeof error?.status === "string") return error.status.slice(0, 64);
+  // TikTok: error: { code: "access_token_invalid", message, log_id }.
+  if (typeof (error as { code?: unknown } | undefined)?.code === "string" && error?.type === undefined) {
+    return String((error as { code: string }).code).slice(0, 64);
+  }
   if (typeof error?.type === "string") {
     const parts = [error.type, error.code, error.error_subcode].filter((part) => typeof part === "string" || typeof part === "number");
     if (typeof error.message === "string" && /valid insights metric/i.test(error.message)) parts.push("invalid_metric");

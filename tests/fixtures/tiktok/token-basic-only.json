@@ -1,0 +1,9 @@
+{
+  "access_token": "act.fixture-access",
+  "expires_in": 86400,
+  "open_id": "_000fixtureOpenId",
+  "refresh_expires_in": 31536000,
+  "refresh_token": "rft.fixture-refresh",
+  "scope": "user.info.basic,video.list",
+  "token_type": "Bearer"
+}

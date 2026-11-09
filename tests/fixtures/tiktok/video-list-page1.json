@@ -1,0 +1,39 @@
+{
+  "data": {
+    "videos": [
+      {
+        "id": "7300000000000000001",
+        "title": "Por qué quebró Blockbuster",
+        "video_description": "Por qué quebró Blockbuster #negocios",
+        "create_time": 1794100000,
+        "cover_image_url": "https://p16-sign.tiktokcdn.com/cover1.jpeg",
+        "share_url": "https://www.tiktok.com/@casiquiebra/video/7300000000000000001",
+        "duration": 44,
+        "view_count": 1520,
+        "like_count": 96,
+        "comment_count": 7,
+        "share_count": 4
+      },
+      {
+        "id": "7300000000000000002",
+        "title": "",
+        "video_description": "Kodak inventó la cámara digital",
+        "create_time": 1794000000,
+        "cover_image_url": "https://p16-sign.tiktokcdn.com/cover2.jpeg",
+        "share_url": "https://www.tiktok.com/@casiquiebra/video/7300000000000000002",
+        "duration": 54,
+        "view_count": 830,
+        "like_count": 41,
+        "comment_count": 2,
+        "share_count": 1
+      }
+    ],
+    "cursor": 1794000000000,
+    "has_more": true
+  },
+  "error": {
+    "code": "ok",
+    "message": "",
+    "log_id": "x"
+  }
+}

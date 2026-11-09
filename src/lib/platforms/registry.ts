@@ -2,6 +2,7 @@ import { getEnv } from "@/lib/env";
 import type { PlatformConnector } from "@/lib/oauth/connector";
 import type { ConnectPlatform } from "@/lib/oauth/types";
 import { createMetaConnector } from "./meta/connector";
+import { createTikTokConnector } from "./tiktok/connector";
 import { createYouTubeConnector } from "./youtube/connector";
 
 /**
@@ -27,6 +28,11 @@ const factories: Partial<Record<ConnectPlatform, () => PlatformConnector | null>
       version: env.META_GRAPH_VERSION,
       loginConfigId: env.META_LOGIN_CONFIG_ID,
     });
+  },
+  tiktok() {
+    const env = getEnv();
+    if (!env.TIKTOK_CLIENT_KEY || !env.TIKTOK_CLIENT_SECRET) return null;
+    return createTikTokConnector({ clientKey: env.TIKTOK_CLIENT_KEY, clientSecret: env.TIKTOK_CLIENT_SECRET });
   },
 };
 
