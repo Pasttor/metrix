@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151a24"/>
+      <stop offset="1" stop-color="#0b0e14"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#2a78d6"/>
+      <stop offset="1" stop-color="#5fb4ff"/>
+    </linearGradient>
+    <linearGradient id="barHi" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#1baf7a"/>
+      <stop offset="1" stop-color="#5ee0b0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- Baseline -->
+  <rect x="212" y="772" width="600" height="20" rx="10" fill="#2b3342"/>
+  <!-- Rising bars -->
+  <rect x="242" y="572" width="140" height="180" rx="36" fill="url(#bar)"/>
+  <rect x="442" y="452" width="140" height="300" rx="36" fill="url(#bar)"/>
+  <rect x="642" y="312" width="140" height="440" rx="36" fill="url(#barHi)"/>
+  <!-- Growth line with nodes -->
+  <polyline points="312,470 512,350 712,212" fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="312" cy="470" r="30" fill="#ffffff"/>
+  <circle cx="512" cy="350" r="30" fill="#ffffff"/>
+  <circle cx="712" cy="212" r="38" fill="#ffffff"/>
+  <circle cx="712" cy="212" r="18" fill="#1baf7a"/>
+</svg>
