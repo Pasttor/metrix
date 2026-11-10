@@ -127,4 +127,9 @@
   html {
     @apply font-sans;
   }
+  /* Native dropdown lists ignore the select's transparent background: give the options the popover colors so they stay readable in dark mode. */
+  select option {
+    background-color: var(--popover);
+    color: var(--popover-foreground);
+  }
 }
