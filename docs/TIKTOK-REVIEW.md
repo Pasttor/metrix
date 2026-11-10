@@ -10,16 +10,29 @@ Esta revisión pide **lectura y publicación**:
 | Display (lectura de videos) | `video.list` |
 | Content Posting API, con **Direct Post** activado | `video.publish` |
 
-`video.upload` (subir a borradores) **no** se usa. Si aparece en la app, quítalo: TikTok rechaza los scopes que no salen en el video.
+`video.upload` (subir a borradores) viene **incluido por defecto** con el Content Posting API y el portal no deja quitarlo (revisado el 10 de noviembre de 2026). Metrix no lo pide al conectar; el texto de revisión explica que solo se usa Direct Post.
 
 Cuando TikTok apruebe la app, el código no cambia. La misma publicación que hoy solo pasa con «Solo yo» pasa con cualquier privacidad, y la cuenta puede volver a ser pública.
 
+## Estado del portal (10 de noviembre de 2026)
+
+- La app **nunca se ha aprobado**. La pestaña **Production** es un borrador vacío: sin productos, sin scopes, sin descripción y sin URLs.
+- Metrix funciona hoy con las credenciales del **Sandbox** «mettrix». Ese Sandbox tiene Login Kit, Content Posting API con Direct Post, los 6 scopes y a `casiquiebra` como *Target user*.
+- Como la app no se ha aprobado antes, TikTok exige que el video demo se grabe con el Sandbox. Así que se graba con Metrix tal como está ahora.
+
 ## Antes de enviar
 
-1. **Producción** → *Products*: Login Kit, Content Posting API (con *Direct Post* activado) y los scopes de la tabla, sin ninguno de más.
-2. Redirect URI de Login Kit: `https://metrix-swart-mu.vercel.app/api/connect/tiktok/callback`.
-3. *Web/Desktop URL*, *Terms of Service URL* y *Privacy Policy URL*: `https://metrix-swart-mu.vercel.app/acerca`, `/terminos` y `/privacidad` (dominio ya verificado).
-4. `TIKTOK_PUBLISH=true` en Vercel (ya está). Después del deploy, **reconecta TikTok** en *Configuración → Conexiones* para que el token tenga solo `video.publish`.
+En <https://developers.tiktok.com/apps/> → **Mettrix** → pestaña **Production**:
+
+1. Da clic en **Import** para copiar la configuración del Sandbox (productos, scopes, redirect URI). Revisa que quede así:
+   - *Products*: Login Kit (redirect URI `https://metrix-swart-mu.vercel.app/api/connect/tiktok/callback`) y Content Posting API con **Direct Post** activado.
+   - *Scopes*: `user.info.basic`, `user.info.profile`, `user.info.stats`, `video.list`, `video.publish`, y `video.upload`, que viene incluido y no se puede quitar.
+2. *Basic information*: ícono de 1024×1024, nombre, categoría *Productivity* y descripción.
+3. *Terms of Service URL* `https://metrix-swart-mu.vercel.app/terminos`, *Privacy Policy URL* `https://metrix-swart-mu.vercel.app/privacidad`. En *Platforms* marca **Web**, con *Web/Desktop URL* `https://metrix-swart-mu.vercel.app/acerca` (dominio ya verificado).
+4. *App review*: pega el texto de abajo y sube el video.
+5. Da clic en **Submit for review**.
+
+**Cuando TikTok apruebe:** copia el *Client key* y el *Client secret* de **Production** a `TIKTOK_CLIENT_KEY` y `TIKTOK_CLIENT_SECRET` en Vercel y en `.env.local`. Vuelve a desplegar y **reconecta TikTok**. Hasta entonces sigue con las del Sandbox.
 
 ## Texto para «Explain how each product and scope works»
 
@@ -33,7 +46,7 @@ user.info.profile: shows the username and profile link.
 user.info.stats: a daily snapshot of follower_count, following_count, likes_count and video_count for the follower and likes charts.
 video.list: lists the owner's own videos (title, cover, create time, duration) with view, like, comment and share counts, saved daily to chart each video's growth.
 
-video.publish (Content Posting API, Direct Post): on the "Publicar" page the owner picks one of their own videos from their Google Drive, writes the caption, selects TikTok and chooses when to post. Following the Content Sharing Guidelines, the form:
+video.publish (Content Posting API, Direct Post). Metrix only uses Direct Post; video.upload is listed because it comes included with the Content Posting API, but Metrix does not request it at login or call the upload-to-draft flow. On the "Publicar" page the owner picks one of their own videos from their Google Drive, writes the caption, selects TikTok and chooses when to post. Following the Content Sharing Guidelines, the form:
 - calls creator_info/query when TikTok is selected and shows the creator's nickname and avatar;
 - shows a privacy dropdown with exactly the privacy_level_options returned, with no default value;
 - shows "Allow comments / Duet / Stitch" checkboxes, all unchecked by default, and disables the ones the creator turned off;
