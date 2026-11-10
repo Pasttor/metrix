@@ -26,6 +26,7 @@ export type ClaimedTarget = {
   externalAccountId: string | null;
   caption: string;
   title: string | null;
+  options?: Record<string, unknown>;
   state: Record<string, unknown>;
   attempts: number;
   video: PublishJob["video"];
@@ -202,6 +203,7 @@ export async function runPublish(deps: PublishRunDeps): Promise<PublishRunResult
         caption: target.caption,
         title: target.title,
         video: target.video,
+        options: target.options ?? {},
         state: target.state,
         attempts: target.attempts,
       };

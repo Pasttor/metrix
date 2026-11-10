@@ -51,6 +51,7 @@ export function supabasePublishStore(db: Admin): PublishStore {
             externalAccountId: account?.external_id ?? null,
             caption: target.caption ?? post.caption,
             title: target.title,
+            options: asState(target.options),
             state: asState(target.state),
             attempts: target.attempts,
             video: { driveFileId: post.drive_file_id, name: post.drive_file_name, mimeType: post.drive_mime_type, sizeBytes: post.drive_size_bytes },

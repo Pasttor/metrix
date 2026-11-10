@@ -323,6 +323,10 @@ export type ScheduleRequest = {
   when: string;
   captions?: Partial<Record<PublishPlatform, string>>;
   youtubeTitle?: string;
+  /** Raw TikTok choices (see publishing/options.ts); required when TikTok is a network. */
+  tiktok?: unknown;
+  /** Raw YouTube choices; required when YouTube is a network. */
+  youtube?: unknown;
 };
 
 export async function schedulePost(request: ScheduleRequest) {
@@ -351,6 +355,8 @@ export async function schedulePost(request: ScheduleRequest) {
       scheduledAt: later ? request.when : undefined,
       youtubeTitle: request.youtubeTitle?.trim() || undefined,
       captions: Object.fromEntries(Object.entries(request.captions ?? {}).filter(([, value]) => value?.trim())) as Record<string, string>,
+      tiktok: request.tiktok,
+      youtube: request.youtube,
     },
     accounts,
     new Date(),

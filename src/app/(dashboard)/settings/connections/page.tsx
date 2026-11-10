@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AccountSyncActions } from "@/components/connections/account-sync-actions";
+import { DisconnectButton } from "@/components/connections/disconnect-button";
 import { ConnectionCard } from "@/components/connections/connection-card";
 import { ConnectionNotice } from "@/components/connections/connection-notice";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
@@ -26,12 +27,14 @@ async function ConnectionCards() {
             key={card.platform}
             card={card}
             timeZone={timeZone}
-            accountActions={card.connectPlatform === "drive" ? undefined : (accountId) => {
+            accountActions={(accountId) => {
+              if (card.connectPlatform === "drive") return <DisconnectButton accountId={accountId} />;
               const active = card.accounts.find((account) => account.id === accountId)?.status === "active";
               const missing = tiktokMissing.get(accountId) ?? [];
               return (
                 <div className="flex flex-col items-end gap-1">
                   <AccountSyncActions accountId={accountId} enabled={syncAvailable && active} />
+                  <DisconnectButton accountId={accountId} />
                   {missing.length > 0 ? (
                     <p className="text-right text-xs text-amber-700 dark:text-amber-400">
                       Faltan permisos: {missing.join(", ")}. Reconecta y acéptalos todos.

@@ -9,7 +9,11 @@ const ACCOUNTS: PublishAccount[] = [
   { id: "00000000-0000-4000-8000-000000000002", platform: "youtube", name: "YT", handle: "metrix" },
   { id: "00000000-0000-4000-8000-000000000003", platform: "facebook", name: "Página A", handle: null },
   { id: "00000000-0000-4000-8000-000000000004", platform: "facebook", name: "Página B", handle: null },
+  { id: "00000000-0000-4000-8000-000000000005", platform: "tiktok", name: "TT", handle: "metrix" },
 ];
+
+const TIKTOK = { privacyLevel: "SELF_ONLY", allowComment: true, allowDuet: false, allowStitch: false, commercial: false, yourBrand: false, brandedContent: false };
+const YOUTUBE = { privacy: "public", madeForKids: false };
 
 function input(overrides: Partial<ScheduleInput> = {}): ScheduleInput {
   return {
@@ -21,6 +25,8 @@ function input(overrides: Partial<ScheduleInput> = {}): ScheduleInput {
     accountIds: [ACCOUNTS[0].id, ACCOUNTS[1].id],
     when: "now",
     captions: {},
+    youtube: YOUTUBE,
+    tiktok: TIKTOK,
     ...overrides,
   };
 }
@@ -45,9 +51,27 @@ describe("buildSchedule", () => {
     if (!result.ok) return;
     expect(result.rows.post).toMatchObject({ drive_file_id: "1AbCdEfGhIjKlMnOp", drive_size_bytes: 1000, scheduled_at: NOW.toISOString() });
     expect(result.rows.targets).toEqual([
-      { platform: "instagram", account_id: ACCOUNTS[0].id, caption: "Texto IG", title: null },
-      { platform: "youtube", account_id: ACCOUNTS[1].id, caption: null, title: "Mi título" },
+      { platform: "instagram", account_id: ACCOUNTS[0].id, caption: "Texto IG", title: null, options: {} },
+      { platform: "youtube", account_id: ACCOUNTS[1].id, caption: null, title: "Mi título", options: YOUTUBE },
     ]);
+  });
+
+  it("requires the TikTok and YouTube choices, with no defaults", () => {
+    const fail = (overrides: Partial<ScheduleInput>) => {
+      const result = buildSchedule(input(overrides), ACCOUNTS, NOW, TZ);
+      return result.ok ? null : result.message;
+    };
+    const withTikTok = { accountIds: [ACCOUNTS[4].id] };
+    expect(fail({ ...withTikTok, tiktok: { ...TIKTOK, privacyLevel: undefined } })).toBe("Elige quién puede ver el video en TikTok.");
+    expect(fail({ ...withTikTok, tiktok: { ...TIKTOK, commercial: true } })).toContain("tu marca, a un tercero o ambos");
+    expect(fail({ ...withTikTok, tiktok: { ...TIKTOK, commercial: true, brandedContent: true } })).toContain("no puede publicarse como «Solo yo»");
+    expect(fail({ accountIds: [ACCOUNTS[1].id], youtube: { madeForKids: false } })).toBe("Elige la visibilidad del video en YouTube.");
+    expect(fail({ accountIds: [ACCOUNTS[1].id], youtube: { privacy: "public" } })).toBe("Indica si el video de YouTube está hecho para niños.");
+  });
+
+  it("stores the TikTok choices and drops brand flags when the disclosure is off", () => {
+    const result = buildSchedule(input({ accountIds: [ACCOUNTS[4].id], tiktok: { ...TIKTOK, privacyLevel: "FOLLOWER_OF_CREATOR", yourBrand: true } }), ACCOUNTS, NOW, TZ);
+    expect(result.ok && result.rows.targets[0].options).toEqual({ ...TIKTOK, privacyLevel: "FOLLOWER_OF_CREATOR", yourBrand: false });
   });
 
   it("converts the scheduled time from Mexico City", () => {
@@ -87,11 +111,19 @@ describe("readScheduleForm", () => {
     form.set("scheduledAt", "2026-11-10T09:30");
     form.set("caption_tiktok", "Solo TikTok");
     form.set("caption_instagram", "   ");
+    form.set("tiktokPrivacy", "PUBLIC_TO_EVERYONE");
+    form.set("tiktokAllowComment", "on");
+    form.set("tiktokCommercial", "on");
+    form.set("tiktokBrandedContent", "on");
+    form.set("youtubePrivacy", "unlisted");
+    form.set("youtubeMadeForKids", "no");
     expect(readScheduleForm(form)).toMatchObject({
       caption: "Hola",
       accountIds: [ACCOUNTS[0].id, ACCOUNTS[1].id],
       when: "later",
       captions: { tiktok: "Solo TikTok" },
+      tiktok: { privacyLevel: "PUBLIC_TO_EVERYONE", allowComment: true, allowDuet: false, allowStitch: false, commercial: true, yourBrand: false, brandedContent: true },
+      youtube: { privacy: "unlisted", madeForKids: false },
     });
   });
 });

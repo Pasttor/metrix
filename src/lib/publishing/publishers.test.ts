@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { ReauthRequiredError } from "@/lib/oauth/token-store";
 import { downloadDriveFile } from "./drive";
 import { facebookPublisher, instagramPublisher } from "./meta-publishers";
-import { chunkPlan, tiktokPublisher } from "./tiktok-publisher";
+import { chunkPlan, fetchCreatorInfo, tiktokPublisher } from "./tiktok-publisher";
 import type { PublishContext, PublishJob } from "./types";
 import { youtubePublisher, youtubeTitle } from "./youtube-publisher";
 
@@ -59,6 +59,8 @@ function setup(routes: Route[], overrides: Partial<PublishContext> = {}) {
   return { ctx, calls, downloadVideo, getAccessToken };
 }
 
+const TIKTOK_CHOICES = { privacyLevel: "FOLLOWER_OF_CREATOR", allowComment: true, allowDuet: false, allowStitch: true, commercial: true, yourBrand: true, brandedContent: false };
+
 function job(platform: PublishJob["platform"], state: Record<string, unknown> = {}): PublishJob {
   return {
     targetId: "t1",
@@ -68,6 +70,7 @@ function job(platform: PublishJob["platform"], state: Record<string, unknown> = 
     caption: "Mi primer reel\n#metrix",
     title: null,
     video: { driveFileId: "drive-1", name: "reel.mp4", mimeType: "video/mp4", sizeBytes: 5 },
+    options: platform === "tiktok" ? TIKTOK_CHOICES : platform === "youtube" ? { privacy: "public", madeForKids: false } : {},
     state,
     attempts: 0,
   };
@@ -163,16 +166,18 @@ describe("Facebook publisher", () => {
 describe("YouTube publisher", () => {
   const SESSION = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&upload_id=abc";
 
-  it("uploads a private video through a resumable session", async () => {
+  it("uploads with the chosen visibility and says when Google keeps it private", async () => {
     const { ctx, calls } = setup([
       (url, init) => (init.method === "POST" && url.pathname === "/upload/youtube/v3/videos" ? new Response(null, { status: 200, headers: { Location: SESSION } }) : undefined),
       (url, init) => (init.method === "PUT" && url.searchParams.get("upload_id") === "abc" ? json(ytVideo) : undefined),
     ]);
     const step = await youtubePublisher.advance({ ...job("youtube"), title: "Mi video" }, ctx);
     expect(step).toMatchObject({ kind: "published", externalId: "dQw4w9WgXcQ", permalink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+    // The fixture comes back private (unaudited project) although public was requested.
+    expect(step.kind === "published" && step.note).toContain("auditoría");
 
     const start = JSON.parse(String(calls[0].init.body));
-    expect(start.status.privacyStatus).toBe("private");
+    expect(start.status).toEqual({ privacyStatus: "public", selfDeclaredMadeForKids: false });
     expect(start.snippet.title).toBe("Mi video");
     expect((calls[0].init.headers as Record<string, string>)["X-Upload-Content-Length"]).toBe("5");
   });
@@ -198,6 +203,15 @@ describe("YouTube publisher", () => {
     expect(step.kind === "failed" && step.error).toContain("Reconecta YouTube");
   });
 
+  it("adds no note when YouTube keeps the requested visibility", async () => {
+    const { ctx } = setup([
+      (_url, init) => (init.method === "POST" ? new Response(null, { status: 200, headers: { Location: SESSION } }) : undefined),
+      (_url, init) => (init.method === "PUT" ? json({ ...ytVideo, status: { privacyStatus: "unlisted" } }) : undefined),
+    ]);
+    const step = await youtubePublisher.advance({ ...job("youtube"), options: { privacy: "unlisted", madeForKids: true } }, ctx);
+    expect(step).toEqual({ kind: "published", externalId: "dQw4w9WgXcQ", permalink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+  });
+
   it("builds a valid title", () => {
     expect(youtubeTitle(null, "\n  Primera línea <b>\nresto", null)).toBe("Primera línea b");
     expect(youtubeTitle(null, "", "clip final.mp4")).toBe("clip final");
@@ -215,20 +229,54 @@ describe("TikTok publisher", () => {
     expect(big - plan.chunkSize * (plan.count - 1)).toBeLessThan(128 * 1024 * 1024);
   });
 
-  it("inits a SELF_ONLY FILE_UPLOAD post and uploads the chunk", async () => {
+  it("inits a FILE_UPLOAD post with the user's choices and uploads the chunk", async () => {
     const { ctx, calls } = setup([
       (url) => (url.pathname.endsWith("/creator_info/query/") ? json(ttCreator) : undefined),
       (url) => (url.pathname.endsWith("/video/init/") ? json(ttInit) : undefined),
       (url, init) => (url.hostname === "open-upload.tiktokapis.com" && init.method === "PUT" ? new Response(null, { status: 201 }) : undefined),
     ]);
     const step = await tiktokPublisher.advance(job("tiktok"), ctx);
-    expect(step).toEqual({ kind: "waiting", state: { publishId: ttInit.data.publish_id }, checkAfterSeconds: 60 });
+    expect(step).toEqual({ kind: "waiting", state: { publishId: ttInit.data.publish_id, privacyLevel: "FOLLOWER_OF_CREATOR" }, checkAfterSeconds: 60 });
 
     const init = JSON.parse(String(calls.find((call) => call.url.pathname.endsWith("/video/init/"))!.init.body));
-    expect(init.post_info.privacy_level).toBe("SELF_ONLY");
+    // Stitch was allowed by the user but the account disabled it (fixture): TikTok's setting wins.
+    expect(init.post_info).toEqual({
+      title: "Mi primer reel\n#metrix",
+      privacy_level: "FOLLOWER_OF_CREATOR",
+      disable_comment: false,
+      disable_duet: true,
+      disable_stitch: true,
+      brand_content_toggle: false,
+      brand_organic_toggle: true,
+    });
     expect(init.source_info).toEqual({ source: "FILE_UPLOAD", video_size: 5, chunk_size: 5, total_chunk_count: 1 });
     const put = calls.find((call) => call.method === "PUT")!;
     expect((put.init.headers as Record<string, string>)["Content-Range"]).toBe("bytes 0-4/5");
+  });
+
+  it("never posts without the user's choices or with a privacy TikTok no longer allows", async () => {
+    const { ctx, calls } = setup([(url) => (url.pathname.endsWith("/creator_info/query/") ? json(ttCreator) : undefined)]);
+    const missing = await tiktokPublisher.advance({ ...job("tiktok"), options: {} }, ctx);
+    expect(missing).toMatchObject({ kind: "failed", retryable: false });
+    expect(calls).toHaveLength(0);
+
+    const publicPost = await tiktokPublisher.advance({ ...job("tiktok"), options: { ...TIKTOK_CHOICES, privacyLevel: "PUBLIC_TO_EVERYONE" } }, ctx);
+    expect(publicPost.kind === "failed" && publicPost.error).toContain("ya no acepta la privacidad");
+    expect(calls.some((call) => call.url.pathname.endsWith("/video/init/"))).toBe(false);
+  });
+
+  it("reads the creator info the form shows", async () => {
+    const { ctx } = setup([(url) => (url.pathname.endsWith("/creator_info/query/") ? json(ttCreator) : undefined)]);
+    expect(await fetchCreatorInfo(ctx.fetch, "token")).toEqual({
+      nickname: "Metrix",
+      username: "metrix_test",
+      avatarUrl: "https://p16.example/avatar.jpg",
+      privacyOptions: ["FOLLOWER_OF_CREATOR", "MUTUAL_FOLLOW_FRIENDS", "SELF_ONLY"],
+      commentDisabled: false,
+      duetDisabled: false,
+      stitchDisabled: true,
+      maxDurationSec: 600,
+    });
   });
 
   it("polls the status until PUBLISH_COMPLETE", async () => {
@@ -251,7 +299,7 @@ describe("TikTok publisher", () => {
     ]);
     const step = await tiktokPublisher.advance(job("tiktok"), ctx);
     expect(step).toMatchObject({ kind: "failed", retryable: false });
-    expect(step.kind === "failed" && step.error).toContain("privado");
+    expect(step.kind === "failed" && step.error).toContain("aún no audita la app");
   });
 });
 

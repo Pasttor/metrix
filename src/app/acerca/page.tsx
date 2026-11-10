@@ -32,7 +32,9 @@ export default function AboutPage() {
       </ul>
       <p>
         Consulta la <a href="/privacidad" className="text-foreground underline underline-offset-4">política de privacidad</a> para saber qué datos
-        se leen, cómo se guardan y cómo eliminarlos.
+        se leen, cómo se guardan y cómo eliminarlos, y los{" "}
+        <a href="/terminos" className="text-foreground underline underline-offset-4">términos de uso</a>, que incluyen los Términos del servicio de
+        YouTube y de TikTok.
       </p>
     </PublicPage>
   );

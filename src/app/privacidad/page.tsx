@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Política de privacidad de Metrix.",
 };
 
-const UPDATED = "9 de noviembre de 2026";
+const UPDATED = "10 de noviembre de 2026";
 
 export default function PrivacyPage() {
   const contact = getEnv().CONTACT_EMAIL;
@@ -24,7 +24,12 @@ export default function PrivacyPage() {
         <li>
           <strong className="text-foreground">YouTube</strong> (permisos <code>youtube.readonly</code> y <code>yt-analytics.readonly</code>): datos
           del canal, lista de videos y sus estadísticas, y reportes de YouTube Analytics (vistas, tiempo de visualización, retención, audiencia y
-          fuentes de tráfico). Con <code>youtube.upload</code> sube los videos que el usuario programa.
+          fuentes de tráfico). Con <code>youtube.upload</code> sube los videos que el usuario programa, con la visibilidad que él elige.
+          Metrix usa los Servicios de la API de YouTube; al conectar YouTube también aplica la 
+          <a href="https://policies.google.com/privacy" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
+            Política de privacidad de Google
+          </a>
+          .
         </li>
         <li>
           <strong className="text-foreground">Google Drive</strong> (permiso <code>drive.file</code>): solo los videos que el usuario elige con el
@@ -38,8 +43,10 @@ export default function PrivacyPage() {
           usuario programa.
         </li>
         <li>
-          <strong className="text-foreground">TikTok</strong>: perfil y estadísticas de los videos propios y, con <code>video.upload</code> y{" "}
-          <code>video.publish</code>, publicación de los videos que el usuario programa.
+          <strong className="text-foreground">TikTok</strong> (permisos <code>user.info.basic</code>, <code>user.info.profile</code>,{" "}
+          <code>user.info.stats</code> y <code>video.list</code>): perfil y estadísticas de los videos propios. Con <code>video.publish</code>{" "}
+          publica los videos que el usuario programa, con la privacidad, las interacciones y la divulgación de contenido comercial que él elige
+          en cada publicación.
         </li>
       </ul>
 
@@ -81,14 +88,20 @@ export default function PrivacyPage() {
       <h2 id="eliminacion">Eliminación de datos</h2>
       <ul>
         <li>
-          Se puede retirar el acceso en cualquier momento desde{" "}
-          <a href="https://myaccount.google.com/connections" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
-            la cuenta de Google
-          </a>{" "}
-          o desde la configuración de integraciones comerciales de Facebook e Instagram. A partir de ese momento Metrix ya no puede leer datos
-          nuevos.
+          En Configuración → Conexiones, el botón <strong className="text-foreground">Desconectar y borrar datos</strong> de cada cuenta quita
+          el acceso de Metrix en la red (Google y TikTok) y borra de inmediato todos los datos guardados de esa cuenta: métricas, publicaciones,
+          tokens y su historial.
         </li>
-        <li>Al desconectar una red, sus datos guardados y sus tokens se pueden borrar por completo de la base de datos a petición del dueño.</li>
+        <li>
+          También se puede retirar el acceso en cualquier momento desde la 
+          <a href="https://security.google.com/settings/security/permissions" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
+            página de permisos de la cuenta de Google
+          </a>
+          , desde Configuración y privacidad → Seguridad → Apps con permiso en TikTok o desde las integraciones comerciales de Facebook e
+          Instagram. A partir de ese momento Metrix ya no puede leer datos nuevos ni publicar; Metrix lo detecta en su sincronización diaria y
+          marca la cuenta para reconectar.
+        </li>
+        <li>Para pedir que se borre cualquier dato restante, usa el correo de contacto de abajo. Se atiende en un máximo de 7 días.</li>
       </ul>
 
       <h2>Contacto</h2>

@@ -21,6 +21,8 @@ export type PublishJob = {
   /** YouTube title. */
   title: string | null;
   video: PublishVideo;
+  /** What the user chose for this network (TikTok privacy, YouTube visibility...). See options.ts. */
+  options?: Record<string, unknown>;
   state: Record<string, unknown>;
   attempts: number;
 };

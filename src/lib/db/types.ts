@@ -612,6 +612,7 @@ export type Database = {
           id: string
           locked_until: string | null
           next_check_at: string | null
+          options: Json
           permalink: string | null
           platform: string
           published_at: string | null
@@ -630,6 +631,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           next_check_at?: string | null
+          options?: Json
           permalink?: string | null
           platform: string
           published_at?: string | null
@@ -648,6 +650,7 @@ export type Database = {
           id?: string
           locked_until?: string | null
           next_check_at?: string | null
+          options?: Json
           permalink?: string | null
           platform?: string
           published_at?: string | null

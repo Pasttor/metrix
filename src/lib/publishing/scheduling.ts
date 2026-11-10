@@ -1,5 +1,7 @@
 import { z } from "zod";
+import type { Json } from "@/lib/db/types";
 import { zonedTimeToUtc } from "@/lib/dates";
+import { tiktokOptionsSchema, youtubeOptionsSchema } from "./options";
 import type { PublishPlatform } from "./types";
 
 /** Validates the /publicar form and turns it into rows for scheduled_posts and its targets. */
@@ -25,13 +27,17 @@ const formSchema = z.object({
   scheduledAt: z.string().optional(),
   youtubeTitle: z.string().max(TITLE_LIMIT, `El título de YouTube pasa de ${TITLE_LIMIT} caracteres.`).optional(),
   captions: z.record(z.string(), z.string().max(CAPTION_LIMIT, `Un texto por red pasa de ${CAPTION_LIMIT} caracteres.`)),
+  /** Raw TikTok choices, validated with tiktokOptionsSchema when TikTok is chosen. */
+  tiktok: z.unknown().optional(),
+  /** Raw YouTube choices, validated with youtubeOptionsSchema when YouTube is chosen. */
+  youtube: z.unknown().optional(),
 });
 
 export type ScheduleInput = z.input<typeof formSchema>;
 
 export type ScheduleRows = {
   post: { caption: string; drive_file_id: string; drive_file_name: string | null; drive_mime_type: string | null; drive_size_bytes: number | null; scheduled_at: string };
-  targets: { platform: PublishPlatform; account_id: string; caption: string | null; title: string | null }[];
+  targets: { platform: PublishPlatform; account_id: string; caption: string | null; title: string | null; options: Json }[];
 };
 
 export type ScheduleResult = { ok: true; rows: ScheduleRows } | { ok: false; message: string };
@@ -58,6 +64,19 @@ export function readScheduleForm(formData: FormData): ScheduleInput {
     scheduledAt: text("scheduledAt"),
     youtubeTitle: text("youtubeTitle")?.trim() || undefined,
     captions,
+    tiktok: {
+      privacyLevel: text("tiktokPrivacy") || undefined,
+      allowComment: formData.get("tiktokAllowComment") === "on",
+      allowDuet: formData.get("tiktokAllowDuet") === "on",
+      allowStitch: formData.get("tiktokAllowStitch") === "on",
+      commercial: formData.get("tiktokCommercial") === "on",
+      yourBrand: formData.get("tiktokYourBrand") === "on",
+      brandedContent: formData.get("tiktokBrandedContent") === "on",
+    },
+    youtube: {
+      privacy: text("youtubePrivacy") || undefined,
+      madeForKids: text("youtubeMadeForKids") === "yes" ? true : text("youtubeMadeForKids") === "no" ? false : undefined,
+    },
   };
 }
 
@@ -88,6 +107,19 @@ export function buildSchedule(input: ScheduleInput, accounts: PublishAccount[], 
     return { ok: false, message: "Escribe el texto de la publicación." };
   }
 
+  // No defaults: the user must choose these on every post (TikTok guidelines; YouTube's made-for-kids declaration).
+  const options: Partial<Record<PublishPlatform, Json>> = {};
+  if (platforms.includes("tiktok")) {
+    const tiktok = tiktokOptionsSchema.safeParse(form.tiktok ?? {});
+    if (!tiktok.success) return { ok: false, message: tiktok.error.issues[0]?.message ?? "Revisa las opciones de TikTok." };
+    options.tiktok = tiktok.data;
+  }
+  if (platforms.includes("youtube")) {
+    const youtube = youtubeOptionsSchema.safeParse(form.youtube ?? {});
+    if (!youtube.success) return { ok: false, message: youtube.error.issues[0]?.message ?? "Revisa las opciones de YouTube." };
+    options.youtube = youtube.data;
+  }
+
   return {
     ok: true,
     rows: {
@@ -104,6 +136,7 @@ export function buildSchedule(input: ScheduleInput, accounts: PublishAccount[], 
         account_id: account.id,
         caption: form.captions[account.platform] ?? null,
         title: account.platform === "youtube" ? (form.youtubeTitle ?? null) : null,
+        options: options[account.platform] ?? {},
       })),
     },
   };

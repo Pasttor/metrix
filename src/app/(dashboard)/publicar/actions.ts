@@ -6,8 +6,14 @@ import { isAuthorizedUser } from "@/lib/auth/session";
 import { createAdminClient } from "@/lib/db/admin";
 import { getEnv } from "@/lib/env";
 import { listPublishAccounts } from "@/lib/metrics/publishing-data";
+import { ReauthRequiredError } from "@/lib/oauth/token-store";
+import { HttpError } from "@/lib/platforms/http";
 import { cancelPost, retryTarget, saveSchedule } from "@/lib/publishing/commands";
+import { publishTokenGetter } from "@/lib/publishing/deps";
+import { getDriveVideo } from "@/lib/publishing/drive";
+import type { TikTokCreator } from "@/lib/publishing/options";
 import { buildSchedule, readScheduleForm } from "@/lib/publishing/scheduling";
+import { CREATOR_MESSAGES, fetchCreatorInfo } from "@/lib/publishing/tiktok-publisher";
 
 /** The user only reads scheduled posts (RLS); writes go through service_role after the session check. */
 
@@ -43,4 +49,37 @@ export async function retryTargetAction(formData: FormData): Promise<void> {
   if (!id.success) return;
   await retryTarget(createAdminClient(), id.data);
   revalidatePath("/publicar");
+}
+
+export type CreatorInfoResult = { ok: true; creator: TikTokCreator } | { ok: false; message: string };
+
+/** TikTok's latest creator info for the form: who posts, allowed privacy levels and interaction settings. */
+export async function tiktokCreatorAction(accountId: string): Promise<CreatorInfoResult> {
+  if (!(await isAuthorizedUser())) return { ok: false, message: "No autorizado." };
+  const account = (await listPublishAccounts()).find((item) => item.id === accountId && item.platform === "tiktok");
+  if (!account) return { ok: false, message: "La cuenta de TikTok ya no está conectada." };
+  try {
+    const token = await publishTokenGetter(createAdminClient())(account.id);
+    return { ok: true, creator: await fetchCreatorInfo(fetch, token) };
+  } catch (error) {
+    if (error instanceof ReauthRequiredError) return { ok: false, message: "La conexión de TikTok expiró. Reconéctala en Configuración → Conexiones." };
+    if (error instanceof HttpError && CREATOR_MESSAGES[error.code]) return { ok: false, message: CREATOR_MESSAGES[error.code] };
+    return { ok: false, message: "No se pudo consultar a TikTok. Intenta de nuevo en un momento." };
+  }
+}
+
+/** Duration of a picked Drive video (null while Google is still processing it). */
+export async function driveVideoDurationAction(fileId: string): Promise<number | null> {
+  if (!(await isAuthorizedUser())) return null;
+  if (!/^[\w-]{10,200}$/.test(fileId)) return null;
+  try {
+    const db = createAdminClient();
+    const { data } = await db.from("accounts").select("id").eq("platform", "drive").eq("status", "active").order("connected_at").limit(1);
+    const accountId = data?.[0]?.id;
+    if (!accountId) return null;
+    const video = await getDriveVideo(fileId, await publishTokenGetter(db)(accountId));
+    return video?.durationSeconds ?? null;
+  } catch {
+    return null;
+  }
 }

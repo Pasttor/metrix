@@ -21,8 +21,10 @@ Google rechaza `drive.file` en la misma autorización que los permisos de YouTub
 |---|---|---|---|
 | Instagram | `instagram_content_publish` | Contenedor `REELS` con `upload_type=resumable` → bytes a `rupload.facebook.com` → espera `status_code=FINISHED` → `media_publish` | Público |
 | Facebook | `pages_manage_posts` | `/{page}/video_reels` fases start → upload (rupload) → finish con `video_state=PUBLISHED` → espera `publishing_phase=complete` | Público |
-| YouTube | `youtube.upload` | Sesión reanudable de `videos.insert` + un PUT con los bytes | **Privado** hasta la auditoría de Google |
-| TikTok | `video.upload`, `video.publish` (con `TIKTOK_PUBLISH=true`) | `creator_info` → `video/init` (`FILE_UPLOAD`, partes de 10 MB si pasa de 64 MB) → PUT por partes → `status/fetch` | **Solo yo (SELF_ONLY)** hasta la auditoría de TikTok; además TikTok puede exigir que la cuenta sea privada |
+| YouTube | `youtube.upload` | Sesión reanudable de `videos.insert` + un PUT con los bytes. Visibilidad y «hecho para niños» los elige el usuario en cada publicación | Google fuerza **privado** hasta que el proyecto pase la auditoría de la API de YouTube; Metrix lo avisa en la nota de la publicación (ver `docs/GOOGLE-REVIEW.md`) |
+| TikTok | `video.publish` (con `TIKTOK_PUBLISH=true`) | `creator_info` (también al abrir el formulario) → `video/init` (`FILE_UPLOAD`, partes de 10 MB si pasa de 64 MB) con la privacidad, interacciones y divulgación comercial elegidas → PUT por partes → `status/fetch` | Hasta la auditoría de TikTok solo acepta **Solo yo** (o cualquier privacidad con la cuenta privada); ver `docs/TIKTOK-REVIEW.md` |
+
+Las opciones por red se guardan en `scheduled_post_targets.options` (`src/lib/publishing/options.ts`) y no tienen valor por defecto: el formulario y la herramienta MCP `programar_publicacion` las piden en cada publicación, como exigen las guías de TikTok.
 
 Código: `src/lib/publishing/` (`runner.ts`, `meta-publishers.ts`, `youtube-publisher.ts`, `tiktok-publisher.ts`, `drive.ts`, `scheduling.ts`, `deps.ts`), ruta `src/app/api/cron/publish/route.ts`, UI `src/app/(dashboard)/publicar/`.
 

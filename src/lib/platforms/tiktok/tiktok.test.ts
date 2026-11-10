@@ -75,7 +75,7 @@ describe("TikTok connector", () => {
     const url = new URL(
       createTikTokConnector({ clientKey: "k", clientSecret: "s", publish: true }).buildAuthUrl({ state: "st", codeChallenge: "ch", redirectUri: REDIRECT }),
     );
-    expect(url.searchParams.get("scope")).toBe("user.info.basic,user.info.profile,user.info.stats,video.list,video.upload,video.publish");
+    expect(url.searchParams.get("scope")).toBe("user.info.basic,user.info.profile,user.info.stats,video.list,video.publish");
   });
 
   it("connects with partial scopes and requests only the basic fields", async () => {

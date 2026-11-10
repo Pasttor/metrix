@@ -2,21 +2,23 @@
 
 import { useActionState, useState } from "react";
 import { FolderOpen } from "lucide-react";
-import { schedulePostAction } from "@/app/(dashboard)/publicar/actions";
+import { driveVideoDurationAction, schedulePostAction, type CreatorInfoResult } from "@/app/(dashboard)/publicar/actions";
 import { NetworkIcon } from "@/components/overview/network-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { YOUTUBE_PRIVACY_LABELS, YOUTUBE_PRIVACY_LEVELS, YOUTUBE_TERMS_URL, type YouTubePrivacy } from "@/lib/publishing/options";
 import { CAPTION_LIMIT, TITLE_LIMIT, type PublishAccount } from "@/lib/publishing/scheduling";
 import type { PublishPlatform } from "@/lib/publishing/types";
 import { pickDriveVideo, type PickedVideo } from "./drive-picker";
+import { EMPTY_TIKTOK, TikTokOptions, tiktokBlocker, type TikTokChoices } from "./tiktok-options";
 
 export type PickerConfig = { clientId: string; apiKey: string; appId: string; loginHint?: string };
 
 const LABELS: Record<PublishPlatform, string> = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
 const LIMITS: Partial<Record<PublishPlatform, string>> = {
-  youtube: "Se sube como privado hasta que Google audite la app.",
-  tiktok: "Se publica como «Solo yo» hasta que TikTok audite la app.",
+  youtube: "Eliges la visibilidad abajo.",
+  tiktok: "Eliges la privacidad y las interacciones abajo.",
   instagram: "Se publica como Reel.",
   facebook: "Se publica como Reel de la página.",
 };
@@ -25,6 +27,9 @@ function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
   return bytes >= 1_000_000_000 ? `${(bytes / 1_000_000_000).toFixed(1)} GB` : `${Math.max(1, Math.round(bytes / 1_000_000))} MB`;
 }
+
+const selectClass =
+  "h-9 w-full max-w-xs rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const textareaClass =
   "min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -50,6 +55,11 @@ export function PublishForm({
   const [caption, setCaption] = useState("");
   const [when, setWhen] = useState<"now" | "later">("now");
   const [formKey, setFormKey] = useState(0);
+  const [durationSec, setDurationSec] = useState<number | null>(null);
+  const [tiktok, setTiktok] = useState<TikTokChoices>(EMPTY_TIKTOK);
+  const [creator, setCreator] = useState<CreatorInfoResult | null>(null);
+  const [youtubePrivacy, setYoutubePrivacy] = useState<YouTubePrivacy | "">("");
+  const [madeForKids, setMadeForKids] = useState<"" | "yes" | "no">("");
 
   const [state, action, pending] = useActionState(async (previous: Awaited<ReturnType<typeof schedulePostAction>> | null, formData: FormData) => {
     const result = await schedulePostAction(previous, formData);
@@ -59,12 +69,23 @@ export function PublishForm({
       setSelected([]);
       setCaption("");
       setWhen("now");
+      setDurationSec(null);
+      setTiktok(EMPTY_TIKTOK);
+      setCreator(null);
+      setYoutubePrivacy("");
+      setMadeForKids("");
       setFormKey((key) => key + 1);
     }
     return result;
   }, null);
 
   const selectedPlatforms = accounts.filter((account) => selected.includes(account.id)).map((account) => account.platform);
+  const tiktokAccount = accounts.find((account) => account.platform === "tiktok" && selected.includes(account.id)) ?? null;
+  const youtubeSelected = selectedPlatforms.includes("youtube");
+  const blocker =
+    (tiktokAccount ? tiktokBlocker(tiktok, creator, durationSec) : null) ??
+    (youtubeSelected && !youtubePrivacy ? "Elige la visibilidad del video en YouTube." : null) ??
+    (youtubeSelected && !madeForKids ? "Indica si el video de YouTube está hecho para niños." : null);
 
   async function choose() {
     if (!picker) return;
@@ -73,7 +94,12 @@ export function PublishForm({
     try {
       const picked = await pickDriveVideo(picker);
       if (picked && !picked.mimeType.startsWith("video/")) setPickError("Ese archivo no es un video.");
-      else if (picked) setVideo(picked);
+      else if (picked) {
+        setVideo(picked);
+        setDurationSec(null);
+        // Used to check TikTok's maximum duration; null while Drive is still processing the video.
+        driveVideoDurationAction(picked.id).then(setDurationSec, () => setDurationSec(null));
+      }
     } catch (error) {
       setPickError(error instanceof Error ? error.message : "No se pudo abrir Google Drive.");
     } finally {
@@ -82,6 +108,11 @@ export function PublishForm({
   }
 
   function toggle(account: PublishAccount, checked: boolean) {
+    if (account.platform === "tiktok") {
+      // A new TikTok selection starts from scratch: fresh creator info, no preselected choices.
+      setCreator(null);
+      setTiktok(EMPTY_TIKTOK);
+    }
     setSelected((current) => {
       // One account per network: picking another account of the same network replaces it.
       const others = current.filter((id) => accounts.find((item) => item.id === id)?.platform !== account.platform);
@@ -101,8 +132,14 @@ export function PublishForm({
             </Button>
             {video ? (
               <span className="text-sm">
-                <span className="font-medium">{video.name}</span>
-                <span className="text-muted-foreground"> · {formatSize(video.sizeBytes)}</span>
+                <a href={`https://drive.google.com/file/d/${encodeURIComponent(video.id)}/view`} target="_blank" rel="noreferrer" className="font-medium underline underline-offset-4">
+                  {video.name}
+                </a>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {formatSize(video.sizeBytes)}
+                  {durationSec !== null ? ` · ${durationSec} s` : ""}
+                </span>
               </span>
             ) : (
               <span className="text-sm text-muted-foreground">
@@ -150,6 +187,54 @@ export function PublishForm({
             })}
           </ul>
         )}
+
+        {tiktokAccount ? <TikTokOptions accountId={tiktokAccount.id} choices={tiktok} onChange={setTiktok} creator={creator} onCreator={setCreator} /> : null}
+
+        {youtubeSelected ? (
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4">
+            <legend className="px-1 text-sm font-medium">Opciones de YouTube</legend>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="youtube-privacy">Visibilidad</Label>
+              <select
+                id="youtube-privacy"
+                name="youtubePrivacy"
+                required
+                value={youtubePrivacy}
+                onChange={(event) => setYoutubePrivacy(event.target.value as YouTubePrivacy | "")}
+                className={selectClass}
+              >
+                <option value="" disabled>
+                  Elige una opción
+                </option>
+                {YOUTUBE_PRIVACY_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {YOUTUBE_PRIVACY_LABELS[level]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium">¿El video está hecho para niños?</p>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="youtubeMadeForKids" value="no" checked={madeForKids === "no"} onChange={() => setMadeForKids("no")} required className="size-4" />
+                  No, no es para niños
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="radio" name="youtubeMadeForKids" value="yes" checked={madeForKids === "yes"} onChange={() => setMadeForKids("yes")} className="size-4" />
+                  Sí, es para niños
+                </label>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Al subir a YouTube, aceptas los{" "}
+              <a href={YOUTUBE_TERMS_URL} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                Términos del servicio de YouTube
+              </a>
+              .
+            </p>
+          </fieldset>
+        ) : null}
       </fieldset>
 
       <fieldset className="flex flex-col gap-2">
@@ -211,11 +296,12 @@ export function PublishForm({
       </fieldset>
 
       <div className="flex flex-col gap-2">
-        <Button type="submit" disabled={pending || !video || selected.length === 0} className="w-fit">
+        <Button type="submit" disabled={pending || !video || selected.length === 0 || blocker !== null} className="w-fit">
           {pending ? "Guardando…" : when === "now" ? "Publicar" : "Programar"}
         </Button>
+        {blocker && video && selected.length > 0 ? <p className="text-sm text-muted-foreground">{blocker}</p> : null}
         <p aria-live="polite" className={`text-sm ${state?.ok === false ? "text-destructive" : "text-muted-foreground"}`}>
-          {state?.message ?? "Metrix revisa la cola cada 5 minutos y te avisa en Alertas cuando cada red termina."}
+          {state?.message ?? "Metrix revisa la cola cada 5 minutos y te avisa en Alertas cuando cada red termina. Cada red puede tardar unos minutos más en mostrar el video."}
         </p>
       </div>
     </form>

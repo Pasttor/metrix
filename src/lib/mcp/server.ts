@@ -3,6 +3,7 @@ import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { addDays } from "@/lib/dates";
 import { getEnv } from "@/lib/env";
+import { TIKTOK_PRIVACY_LEVELS, YOUTUBE_PRIVACY_LEVELS } from "@/lib/publishing/options";
 import { RANGE_OPTIONS, type Range } from "@/lib/range";
 import * as data from "./data";
 
@@ -16,7 +17,7 @@ export const MCP_INSTRUCTIONS = `Metrix es el dashboard personal del creador: gu
 - Empieza por resumen_general o listar_cuentas; usa catalogo_metricas para saber qué significa cada métrica.
 - Para analizar hooks y guiones usa detalle_publicacion: trae la curva de retención (YouTube y Facebook), la tasa de salto de Instagram (reels_skip_rate), fuentes de tráfico y términos de búsqueda.
 - Las fechas son días en zona ${"America/Mexico_City"} (YYYY-MM-DD). Los valores de publicaciones son acumulados a la última captura.
-- Antes de programar_publicacion confirma con el usuario el video, el texto, las redes y la hora. YouTube sube como privado y TikTok como "Solo yo" mientras las apps no estén auditadas.`;
+- Antes de programar_publicacion confirma con el usuario el video, el texto, las redes y la hora. Para TikTok pregúntale además la privacidad, si permite comentarios, dúo y stitch, y si el video es contenido comercial (tu marca o de marca); para YouTube, la visibilidad y si es para niños. Nunca elijas esas opciones por él.`;
 
 const platform = z.enum(data.DATA_PLATFORMS);
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa YYYY-MM-DD");
@@ -193,10 +194,25 @@ export function registerMetrixTools(server: McpServer): void {
         cuando: z.string().describe("'ahora' o fecha y hora local 'YYYY-MM-DDTHH:mm'"),
         texto_por_red: z.object({ instagram: z.string().max(2200), facebook: z.string().max(2200), youtube: z.string().max(2200), tiktok: z.string().max(2200) }).partial().optional(),
         titulo_youtube: z.string().max(100).optional(),
+        opciones_tiktok: z
+          .object({
+            privacidad: z.enum(TIKTOK_PRIVACY_LEVELS).describe("Quién lo ve; pregúntalo al usuario"),
+            permitir_comentarios: z.boolean(),
+            permitir_duo: z.boolean(),
+            permitir_stitch: z.boolean(),
+            tu_marca: z.boolean().describe("Promociona el negocio o la marca del propio usuario"),
+            contenido_de_marca: z.boolean().describe("Promociona a un tercero (colaboración pagada); no puede ser SELF_ONLY"),
+          })
+          .optional()
+          .describe("Obligatorio si redes incluye tiktok; todo lo elige el usuario"),
+        opciones_youtube: z
+          .object({ visibilidad: z.enum(YOUTUBE_PRIVACY_LEVELS), para_ninos: z.boolean() })
+          .optional()
+          .describe("Obligatorio si redes incluye youtube; lo elige el usuario"),
       }),
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    async ({ drive_file_id, texto, redes, cuando, texto_por_red, titulo_youtube }) =>
+    async ({ drive_file_id, texto, redes, cuando, texto_por_red, titulo_youtube, opciones_tiktok, opciones_youtube }) =>
       run(async () => {
         const outcome = await data.schedulePost({
           driveFileId: drive_file_id,
@@ -205,6 +221,18 @@ export function registerMetrixTools(server: McpServer): void {
           when: cuando.trim().toLowerCase() === "ahora" || cuando.trim().toLowerCase() === "now" ? "now" : cuando.trim(),
           captions: texto_por_red,
           youtubeTitle: titulo_youtube,
+          tiktok: opciones_tiktok
+            ? {
+                privacyLevel: opciones_tiktok.privacidad,
+                allowComment: opciones_tiktok.permitir_comentarios,
+                allowDuet: opciones_tiktok.permitir_duo,
+                allowStitch: opciones_tiktok.permitir_stitch,
+                commercial: opciones_tiktok.tu_marca || opciones_tiktok.contenido_de_marca,
+                yourBrand: opciones_tiktok.tu_marca,
+                brandedContent: opciones_tiktok.contenido_de_marca,
+              }
+            : undefined,
+          youtube: opciones_youtube ? { privacy: opciones_youtube.visibilidad, madeForKids: opciones_youtube.para_ninos } : undefined,
         });
         if (!outcome.ok) throw new Error(outcome.message);
         return { ...outcome, seguimiento: "Usa publicaciones_programadas para ver el estado de cada red." };

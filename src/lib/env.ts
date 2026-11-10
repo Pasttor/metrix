@@ -39,11 +39,13 @@ export const envSchema = z.object({
   // TikTok (required from T13)
   TIKTOK_CLIENT_KEY: optionalString,
   TIKTOK_CLIENT_SECRET: optionalString,
-  /** Ask TikTok for video.upload/video.publish (true while the app has Content Posting API). */
+  /** Ask TikTok for video.publish (true while the app has the Content Posting API with Direct Post). */
   TIKTOK_PUBLISH: z.stringbool().default(false),
   /** Google Picker in the browser (public by design, restrict them in Google Cloud). */
   NEXT_PUBLIC_GOOGLE_PICKER_API_KEY: optionalString,
   NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER: optionalString,
+  /** Search Console HTML-tag token: proves ownership of the domain for Google's OAuth verification. */
+  GOOGLE_SITE_VERIFICATION: optionalString,
 
   // Alerts (T16)
   RESEND_API_KEY: optionalString,
