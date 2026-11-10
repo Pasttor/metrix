@@ -28,26 +28,26 @@ export default function TermsPage() {
       <h2>Servicios de terceros</h2>
       <ul>
         <li>
-          Metrix usa los Servicios de la API de YouTube. Al usar Metrix con YouTube, aceptas quedar sujeto a los 
+          Metrix usa los Servicios de la API de YouTube. Al usar Metrix con YouTube, aceptas quedar sujeto a los{" "}
           <a href="https://www.youtube.com/t/terms" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Términos del servicio de YouTube
-          </a> 
-          y a la 
+          </a>{" "}
+          y a la{" "}
           <a href="https://policies.google.com/privacy" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Política de privacidad de Google
           </a>
           .
         </li>
         <li>
-          Las publicaciones en TikTok se rigen por los 
+          Las publicaciones en TikTok se rigen por los{" "}
           <a href="https://www.tiktok.com/legal/page/global/terms-of-service/en" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Términos del servicio de TikTok
           </a>
-          , su 
+          , su{" "}
           <a href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Confirmación de uso de música
-          </a> 
-          y, si el video es contenido de marca, su 
+          </a>{" "}
+          y, si el video es contenido de marca, su{" "}
           <a href="https://www.tiktok.com/legal/page/global/bc-policy/en" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Política de contenido de marca
           </a>

@@ -25,7 +25,7 @@ export default function PrivacyPage() {
           <strong className="text-foreground">YouTube</strong> (permisos <code>youtube.readonly</code> y <code>yt-analytics.readonly</code>): datos
           del canal, lista de videos y sus estadísticas, y reportes de YouTube Analytics (vistas, tiempo de visualización, retención, audiencia y
           fuentes de tráfico). Con <code>youtube.upload</code> sube los videos que el usuario programa, con la visibilidad que él elige.
-          Metrix usa los Servicios de la API de YouTube; al conectar YouTube también aplica la 
+          Metrix usa los Servicios de la API de YouTube; al conectar YouTube también aplica la{" "}
           <a href="https://policies.google.com/privacy" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             Política de privacidad de Google
           </a>
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
           tokens y su historial.
         </li>
         <li>
-          También se puede retirar el acceso en cualquier momento desde la 
+          También se puede retirar el acceso en cualquier momento desde la{" "}
           <a href="https://security.google.com/settings/security/permissions" className="text-foreground underline underline-offset-4" target="_blank" rel="noreferrer">
             página de permisos de la cuenta de Google
           </a>
