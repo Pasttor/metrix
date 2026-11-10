@@ -42,20 +42,16 @@ En [Google Cloud Console](https://console.cloud.google.com/), con el proyecto de
 
 Si no usas los ingresos de YouTube (`yt-analytics-monetary.readonly`), no lo agregues.
 
-**Justificación de cada permiso** (el formulario la pide en inglés):
+**«¿Cómo se usarán los permisos?»** (máx. 1000 caracteres; este texto tiene 959). Google solo lo pide para los permisos sensibles (`youtube.readonly`, `youtube.upload`); `yt-analytics.readonly` y `drive.file` salen como no sensibles. Quita `yt-analytics-monetary.readonly` si aparece: Metrix no lo pide mientras `YOUTUBE_MONETARY=false`.
 
 ```
-Metrix is a personal, single-user dashboard (https://metrix-swart-mu.vercel.app). The owner connects their own YouTube channel to see its analytics and to publish their own videos.
+Metrix is a personal, single-user dashboard (https://metrix-swart-mu.vercel.app). The owner connects their own YouTube channel to see its stats and to publish their own videos.
 
-youtube.readonly: reads the owner's channel (title, thumbnail, subscriber and video counts) and the list of their own videos with their statistics, shown on the YouTube page and saved daily to chart growth.
+youtube.readonly: reads the owner's channel (title, thumbnail, subscriber and video counts) and the list of their own videos with statistics, shown on the YouTube page and saved daily to chart growth.
 
-yt-analytics.readonly: reads YouTube Analytics reports for the owner's channel and videos (views, watch time, audience retention, traffic sources, search terms, demographics), shown as charts so the owner can improve their videos' hooks and scripts.
+youtube.upload: on the "Publicar" page the owner picks one of their own videos from Google Drive (drive.file, Google Picker), writes the title and description, chooses the visibility (public, unlisted or private) and the made-for-kids declaration, and schedules it. Metrix uploads it with videos.insert at that time. Nothing is uploaded that the owner did not schedule; existing videos are never edited or deleted.
 
-youtube.upload: on the "Publicar" page the owner picks one of their own videos from their Google Drive, writes the title and description, chooses the visibility (public, unlisted or private) and the made-for-kids declaration, and schedules it. Metrix uploads that video with videos.insert at the scheduled time. Nothing is uploaded that the owner did not schedule, and existing videos are never edited or deleted.
-
-drive.file: requested on a separate connection. The owner picks a video with the Google Picker; Metrix can only open the files picked there and downloads that file at publishing time to upload it. It never lists or reads the rest of the Drive and does not keep a copy.
-
-Data is stored encrypted in the app's database, used only to show the owner their own data and to make the posts they schedule, never sold or shared, and deleted with "Desconectar y borrar datos". Use of data follows the Google API Services User Data Policy, including the Limited Use requirements.
+Narrower scopes are not enough: youtube.readonly is the read scope for channel and video data, and youtube.upload is the narrowest scope that allows videos.insert.
 ```
 
 ## 3. Video demo de OAuth (YouTube, «No listado»)
