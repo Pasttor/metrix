@@ -9,8 +9,8 @@ import { PublishError, type PublishContext, type PublishJob, type PublishStep, t
  * TikTok Content Posting API (Direct Post) with FILE_UPLOAD: ask the creator
  * info, init the post with the privacy, interaction and commercial content
  * choices the user made in the form, PUT the chunks, then poll the status on
- * later runs. Until TikTok audits the app it only accepts SELF_ONLY posts
- * (or any privacy on a private account).
+ * later runs. Until TikTok audits the app it only accepts posts to private
+ * accounts (unaudited_client_can_only_post_to_private_accounts), whatever the privacy level.
  */
 
 const MIB = 1024 * 1024;
@@ -118,7 +118,7 @@ const MESSAGES: Record<string, string> = {
   ...CREATOR_MESSAGES,
   reached_active_user_cap: "La app alcanzó el límite diario de usuarios de TikTok. Se reintentará más tarde.",
   unaudited_client_can_only_post_to_private_accounts:
-    "TikTok aún no audita la app: mientras tanto solo acepta publicaciones «Solo yo» (o cualquier privacidad si la cuenta es privada).",
+    "TikTok aún no audita la app: mientras tanto solo deja publicar si tu cuenta de TikTok es privada. Ponla en privado y reintenta.",
   privacy_level_option_mismatch: "TikTok ya no acepta la privacidad elegida para esta cuenta. Prográmalo de nuevo con otra.",
 };
 

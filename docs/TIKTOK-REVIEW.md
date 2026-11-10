@@ -12,7 +12,7 @@ Esta revisión pide **lectura y publicación**:
 
 `video.upload` (subir a borradores) viene **incluido por defecto** con el Content Posting API y el portal no deja quitarlo (revisado el 10 de noviembre de 2026). Metrix no lo pide al conectar; el texto de revisión explica que solo se usa Direct Post.
 
-Cuando TikTok apruebe la app, el código no cambia. La misma publicación que hoy solo pasa con «Solo yo» pasa con cualquier privacidad, y la cuenta puede volver a ser pública.
+Cuando TikTok apruebe la app, el código no cambia. Mientras TikTok no audite la app, solo deja publicar si **la cuenta de TikTok es privada** (`unaudited_client_can_only_post_to_private_accounts`); elegir «Solo yo» no basta. Cuando apruebe, la cuenta puede quedarse pública.
 
 ## Estado del portal (10 de noviembre de 2026)
 
@@ -70,7 +70,7 @@ Graba la **ventana completa de Chrome** con la barra de direcciones visible (con
    1. **Elegir de Google Drive**: elige un video corto.
    2. Escribe el texto y marca **TikTok**.
    3. Detente 2 segundos en «Publicarás en TikTok como…» con el nombre y la foto.
-   4. Abre el selector **¿Quién puede ver este video?**. Muestra que empieza vacío y elige **Solo yo**. Mientras TikTok no audite la app, es la única opción que funciona con la cuenta pública.
+   4. Abre el selector **¿Quién puede ver este video?**. Muestra que empieza vacío y elige **Solo yo**. Antes de grabar, pon la cuenta de TikTok en **privado**: sin auditoría, TikTok rechaza publicar en cuentas públicas.
    5. Marca **Comentar**. Deja ver que Dúo y Stitch empiezan desmarcados.
    6. Activa **Divulgar contenido comercial**. Muestra que el botón **Publicar** se bloquea hasta elegir una opción.
    7. Marca **Tu marca** y muestra la etiqueta «Contenido promocional».
