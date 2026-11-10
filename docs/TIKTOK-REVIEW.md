@@ -34,26 +34,18 @@ En <https://developers.tiktok.com/apps/> → **Mettrix** → pestaña **Producti
 
 **Cuando TikTok apruebe:** copia el *Client key* y el *Client secret* de **Production** a `TIKTOK_CLIENT_KEY` y `TIKTOK_CLIENT_SECRET` en Vercel y en `.env.local`. Vuelve a desplegar y **reconecta TikTok**. Hasta entonces sigue con las del Sandbox.
 
-## Texto para «Explain how each product and scope works»
+## Texto para «Explain how each product and scope works» (máx. 1000 caracteres)
+
+El campo del portal acepta hasta 1000 caracteres; este texto tiene 976.
 
 ```
-Mettrix (web app at https://metrix-swart-mu.vercel.app, shown as "Metrix" in its interface) is a personal, single-user dashboard. The account owner uses it to track their own TikTok account next to their YouTube, Instagram and Facebook accounts, and to publish their own videos to TikTok.
+Mettrix (https://metrix-swart-mu.vercel.app, shown as "Metrix") is a single-user dashboard where the owner tracks and posts to their own TikTok account. The demo starts already signed in (magic-link login), going from the public About page to the dashboard.
 
-Login Kit: on Settings > Connections the owner clicks "Conectar" on the TikTok card, authorizes on TikTok and is redirected back. Tokens are stored encrypted (AES-256-GCM) and refreshed before each daily sync. "Desconectar y borrar datos" revokes the token through /v2/oauth/revoke/ and deletes every stored record of the account.
-
-user.info.basic: shows the connected account (display name and avatar) on the connection card.
-user.info.profile: shows the username and profile link.
-user.info.stats: a daily snapshot of follower_count, following_count, likes_count and video_count for the follower and likes charts.
-video.list: lists the owner's own videos (title, cover, create time, duration) with view, like, comment and share counts, saved daily to chart each video's growth.
-
-video.publish (Content Posting API, Direct Post). Metrix only uses Direct Post; video.upload is listed because it comes included with the Content Posting API, but Metrix does not request it at login or call the upload-to-draft flow. On the "Publicar" page the owner picks one of their own videos from their Google Drive, writes the caption, selects TikTok and chooses when to post. Following the Content Sharing Guidelines, the form:
-- calls creator_info/query when TikTok is selected and shows the creator's nickname and avatar;
-- shows a privacy dropdown with exactly the privacy_level_options returned, with no default value;
-- shows "Allow comments / Duet / Stitch" checkboxes, all unchecked by default, and disables the ones the creator turned off;
-- checks max_video_post_duration_sec against the video duration;
-- has the "Disclose video content" toggle (off by default) with "Your brand" and "Branded content", shows the "Promotional content" / "Paid partnership" label, blocks posting until one is selected, and does not allow branded content with "Only me";
-- shows the consent line linking to TikTok's Music Usage Confirmation (plus the Branded Content Policy when branded content is selected);
-- never posts anything the owner did not schedule. The video is uploaded with FILE_UPLOAD and the status is polled with status/fetch; the owner is notified when TikTok finishes processing.
+Login Kit: Settings > Connections > Reconectar, authorize, back connected.
+user.info.basic/profile: name, avatar and @username on the card.
+user.info.stats: daily followers and likes charts.
+video.list: own videos with views, likes, comments and shares.
+video.publish (Direct Post only; video.upload comes bundled but is unused): on Publicar the owner picks a Drive video and caption. The form loads creator_info (nickname, avatar), offers its privacy options with no default, comment/duet/stitch unchecked (disabled if off), checks max duration, has the commercial content disclosure (Your brand / Branded content, labels, no branded with Only me) and the Music Usage consent. Posted with FILE_UPLOAD; status polled.
 ```
 
 ## Guion del video demo (2–4 min, MP4, máx. 50 MB por archivo)
