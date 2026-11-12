@@ -350,3 +350,36 @@ describe("Drive download", () => {
     await expect(downloadDriveFile("gone", "token", fetch as unknown as typeof globalThis.fetch)).rejects.toThrow("No se encontró el video");
   });
 });
+
+describe("Meta upload host errors", () => {
+  const container = (url: URL, init: RequestInit) => (init.method === "POST" && url.pathname === "/v24.0/ig-1/media" ? json(igContainer) : undefined);
+
+  it("shows Meta's upload message and retries when Meta says it is retriable", async () => {
+    const { ctx } = setup([
+      container,
+      (url) => (url.hostname === "rupload.facebook.com" ? json({ debug_info: { retriable: true, type: "ProcessingFailedError", message: "Request processing failed" } }, 400) : undefined),
+    ]);
+    const step = await instagramPublisher.advance(job("instagram"), ctx);
+    expect(step).toMatchObject({ kind: "failed", retryable: true });
+    expect(step.kind === "failed" && step.error).toBe("Instagram no aceptó la subida del video (400 ProcessingFailedError: Request processing failed).");
+  });
+
+  it("does not retry what Meta marks as permanent", async () => {
+    const { ctx } = setup([
+      container,
+      (url) => (url.hostname === "rupload.facebook.com" ? json({ debug_info: { retriable: false, type: "BadRequest", message: "Invalid file" } }, 400) : undefined),
+    ]);
+    expect(await instagramPublisher.advance(job("instagram"), ctx)).toMatchObject({ kind: "failed", retryable: false });
+  });
+
+  it("treats an empty 400 from the upload host as transient", async () => {
+    const { ctx } = setup([container, (url) => (url.hostname === "rupload.facebook.com" ? new Response("", { status: 400 }) : undefined)]);
+    expect(await instagramPublisher.advance(job("instagram"), ctx)).toMatchObject({ kind: "failed", retryable: true, error: "Instagram no aceptó la subida del video (400)." });
+  });
+
+  it("keeps the permission message for Graph-style errors", async () => {
+    const { ctx } = setup([container, (url) => (url.hostname === "rupload.facebook.com" ? json(metaPermission, 403) : undefined)]);
+    const step = await instagramPublisher.advance(job("instagram"), ctx);
+    expect(step.kind === "failed" && step.error).toContain("Reconecta Meta");
+  });
+});

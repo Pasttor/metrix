@@ -21,14 +21,46 @@ async function graph<T extends z.ZodType>(ctx: PublishContext, token: string, me
   return parseJson(response, schema, `meta.publish.${path.split("/").pop()}`);
 }
 
+const ruploadErrorSchema = z.object({
+  debug_info: z.object({ retriable: z.boolean().optional(), type: z.string().optional(), message: z.string().optional() }).optional(),
+  error: z.unknown().optional(),
+});
+
+/**
+ * Meta's upload host answers errors as `{ debug_info: { retriable, type, message } }`
+ * instead of the Graph `{ error }` shape. Its message is about the upload
+ * (never a token), so it is kept short and shown; `retriable` decides the retry.
+ */
+export async function ruploadFailure(response: Response, network: string): Promise<Error> {
+  const text = await response.text().catch(() => "");
+  let body: unknown = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = null;
+  }
+  const parsed = ruploadErrorSchema.safeParse(body);
+  const info = parsed.success ? parsed.data.debug_info : undefined;
+  if (info) {
+    const detail = [info.type, info.message?.slice(0, 160)].filter(Boolean).join(": ");
+    return new PublishError(`${network} no aceptó la subida del video (${response.status}${detail ? ` ${detail}` : ""}).`, info.retriable ?? response.status >= 500);
+  }
+  if (parsed.success && parsed.data.error) {
+    // Graph-style error from the upload host: keep the usual permission/status handling.
+    return new HttpError(response.status, await errorCode(new Response(text, { status: response.status })));
+  }
+  // Unknown body: a 5xx or an empty 400 from the upload host is usually transient.
+  return new PublishError(`${network} no aceptó la subida del video (${response.status}).`, true);
+}
+
 /** Sends the whole file to a rupload URL (Meta accepts it in one request). */
-async function rupload(fetchFn: FetchFn, url: string, token: string, bytes: Uint8Array): Promise<void> {
+async function rupload(fetchFn: FetchFn, url: string, token: string, bytes: Uint8Array, network: string): Promise<void> {
   const response = await fetchFn(url, {
     method: "POST",
     headers: { Authorization: `OAuth ${token}`, offset: "0", file_size: String(bytes.byteLength), "Content-Type": "application/octet-stream" },
     body: bytes as unknown as BodyInit,
   });
-  if (!response.ok) throw new HttpError(response.status, await errorCode(response));
+  if (!response.ok) throw await ruploadFailure(response, network);
 }
 
 function describe(error: unknown, network: string): PublishStep {
@@ -59,7 +91,7 @@ export const instagramPublisher: Publisher = {
           caption: job.caption.slice(0, 2200),
           share_to_feed: "true",
         }, createdSchema);
-        await rupload(ctx.fetch, container.uri ?? `${RUPLOAD}/ig-api-upload/${ctx.graphVersion}/${container.id}`, token, bytes);
+        await rupload(ctx.fetch, container.uri ?? `${RUPLOAD}/ig-api-upload/${ctx.graphVersion}/${container.id}`, token, bytes, "Instagram");
         return { kind: "waiting", state: { containerId: container.id }, checkAfterSeconds: STATUS_CHECK_SECONDS };
       }
 
@@ -102,7 +134,7 @@ export const facebookPublisher: Publisher = {
       if (!videoId) {
         const bytes = await ctx.downloadVideo();
         const start = await graph(ctx, token, "POST", `${job.externalAccountId}/video_reels`, { upload_phase: "start" }, reelStartSchema);
-        await rupload(ctx.fetch, start.upload_url ?? `${RUPLOAD}/video-upload/${ctx.graphVersion}/${start.video_id}`, token, bytes);
+        await rupload(ctx.fetch, start.upload_url ?? `${RUPLOAD}/video-upload/${ctx.graphVersion}/${start.video_id}`, token, bytes, "Facebook");
         await graph(ctx, token, "POST", `${job.externalAccountId}/video_reels`, {
           upload_phase: "finish",
           video_id: start.video_id,
