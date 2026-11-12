@@ -9,7 +9,10 @@ import { PublishError, type PublishContext, type PublishJob, type PublishPlatfor
  * machine one step, save the outcome and settle the parent posts.
  */
 
-export const MAX_ATTEMPTS = 3;
+/** Minutes before each retry of a transient failure: 3 retries, at 5, 10 and 20 minutes. */
+export const RETRY_DELAYS_MINUTES = [5, 10, 20] as const;
+/** The first try plus one per retry delay. */
+export const MAX_ATTEMPTS = RETRY_DELAYS_MINUTES.length + 1;
 export const LEASE_SECONDS = 290;
 export const BATCH_LIMIT = 8;
 /** Give up when a network keeps "processing" this long. */
@@ -79,7 +82,7 @@ export function postStatus(statuses: TargetStatus[]): PostStatus {
 
 /** Minutes to wait before retry number `attempts` (1-based). */
 export function retryDelayMinutes(attempts: number): number {
-  return 10 * attempts;
+  return RETRY_DELAYS_MINUTES[Math.min(Math.max(attempts, 1), RETRY_DELAYS_MINUTES.length) - 1];
 }
 
 function snippet(caption: string): string {

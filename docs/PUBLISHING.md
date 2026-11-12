@@ -9,7 +9,7 @@ Decisiones (9 nov 2026): los videos salen del **Google Drive** del usuario, se p
 3. La Server Action guarda `scheduled_posts` y un `scheduled_post_targets` por red (con service_role, después de revisar la sesión).
 4. `pg_cron` (job `metrix-publish`) llama a `POST /api/cron/publish` cada 5 minutos con `Authorization: Bearer <CRON_SECRET>`; el secreto está en Vault (`metrix_cron_secret`).
 5. La ruta reserva hasta 8 destinos vencidos (`claim_publish_targets`, con `for update skip locked` y un lease de 290 s), descarga el video de Drive con el token de la conexión **Google Drive** (una vez por publicación y corrida, y solo si hace falta) y avanza la máquina de estados de cada red un paso.
-6. Cada destino termina en `published` (id y enlace) o `failed` (motivo claro). Los errores transitorios se reintentan 2 veces (10 y 20 min). Si una red tarda más de 3 h en procesar, se marca como fallida. Cada resultado crea una alerta en `/alertas`.
+6. Cada destino termina en `published` (id y enlace) o `failed` (motivo claro). Los errores transitorios se reintentan 3 veces (a los 5, 10 y 20 min). Si una red tarda más de 3 h en procesar, se marca como fallida. Cada resultado crea una alerta en `/alertas`.
 
 ## Google Drive va aparte
 

@@ -68,7 +68,11 @@ describe("postStatus", () => {
 describe("nextUpdate", () => {
   it("schedules a retry for retryable failures, then gives up", () => {
     const first = nextUpdate(target(), { kind: "failed", error: "Instagram respondió 500.", retryable: true }, NOW);
-    expect(first).toMatchObject({ status: "pending", attempts: 1, next_check_at: "2026-11-09T18:10:00.000Z" });
+    expect(first).toMatchObject({ status: "pending", attempts: 1, next_check_at: "2026-11-09T18:05:00.000Z", error: "Instagram respondió 500. Reintento 1 de 3." });
+    const second = nextUpdate(target({ attempts: 1 }), { kind: "failed", error: "Instagram respondió 500.", retryable: true }, NOW);
+    expect(second).toMatchObject({ attempts: 2, next_check_at: "2026-11-09T18:10:00.000Z" });
+    const third = nextUpdate(target({ attempts: 2 }), { kind: "failed", error: "Instagram respondió 500.", retryable: true }, NOW);
+    expect(third).toMatchObject({ attempts: 3, next_check_at: "2026-11-09T18:20:00.000Z", error: "Instagram respondió 500. Reintento 3 de 3." });
 
     const last = nextUpdate(target({ attempts: MAX_ATTEMPTS - 1 }), { kind: "failed", error: "Instagram respondió 500.", retryable: true }, NOW);
     expect(last).toMatchObject({ status: "failed", attempts: MAX_ATTEMPTS, error: "Instagram respondió 500." });
