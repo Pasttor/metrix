@@ -166,15 +166,13 @@ describe("Facebook publisher", () => {
 describe("YouTube publisher", () => {
   const SESSION = "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&upload_id=abc";
 
-  it("uploads with the chosen visibility and says when Google keeps it private", async () => {
+  it("uploads with the chosen visibility and waits for YouTube to process it", async () => {
     const { ctx, calls } = setup([
       (url, init) => (init.method === "POST" && url.pathname === "/upload/youtube/v3/videos" ? new Response(null, { status: 200, headers: { Location: SESSION } }) : undefined),
       (url, init) => (init.method === "PUT" && url.searchParams.get("upload_id") === "abc" ? json(ytVideo) : undefined),
     ]);
     const step = await youtubePublisher.advance({ ...job("youtube"), title: "Mi video" }, ctx);
-    expect(step).toMatchObject({ kind: "published", externalId: "dQw4w9WgXcQ", permalink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
-    // The fixture comes back private (unaudited project) although public was requested.
-    expect(step.kind === "published" && step.note).toContain("auditoría");
+    expect(step).toEqual({ kind: "waiting", state: { videoId: "dQw4w9WgXcQ" }, checkAfterSeconds: 10 });
 
     const start = JSON.parse(String(calls[0].init.body));
     expect(start.status).toEqual({ privacyStatus: "public", selfDeclaredMadeForKids: false });
@@ -192,7 +190,7 @@ describe("YouTube publisher", () => {
       },
       (_url, init) => (init.method === "PUT" ? json(ytVideo) : undefined),
     ]);
-    expect((await youtubePublisher.advance(job("youtube"), ctx)).kind).toBe("published");
+    expect((await youtubePublisher.advance(job("youtube"), ctx)).kind).toBe("waiting");
     expect(getAccessToken).toHaveBeenLastCalledWith("acc-1", { forceRefresh: true });
   });
 
@@ -203,13 +201,47 @@ describe("YouTube publisher", () => {
     expect(step.kind === "failed" && step.error).toContain("Reconecta YouTube");
   });
 
-  it("adds no note when YouTube keeps the requested visibility", async () => {
-    const { ctx } = setup([
-      (_url, init) => (init.method === "POST" ? new Response(null, { status: 200, headers: { Location: SESSION } }) : undefined),
-      (_url, init) => (init.method === "PUT" ? json({ ...ytVideo, status: { privacyStatus: "unlisted" } }) : undefined),
-    ]);
-    const step = await youtubePublisher.advance({ ...job("youtube"), options: { privacy: "unlisted", madeForKids: true } }, ctx);
-    expect(step).toEqual({ kind: "published", externalId: "dQw4w9WgXcQ", permalink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" });
+  const videos = (status: Record<string, string>) => (url: URL) =>
+    url.pathname === "/youtube/v3/videos" ? json({ items: [{ id: "dQw4w9WgXcQ", status }] }) : undefined;
+  const uploaded = (options: Record<string, unknown> = { privacy: "public", madeForKids: false }) => ({
+    ...job("youtube", { videoId: "dQw4w9WgXcQ" }),
+    options,
+  });
+
+  it("only asks for the status of an uploaded video, without downloading it again", async () => {
+    const { ctx, downloadVideo, calls } = setup([videos({ uploadStatus: "uploaded", privacyStatus: "public" })]);
+    const step = await youtubePublisher.advance(uploaded(), ctx);
+    expect(step).toEqual({ kind: "waiting", state: { videoId: "dQw4w9WgXcQ" }, checkAfterSeconds: 10 });
+    expect(downloadVideo).not.toHaveBeenCalled();
+    expect(calls[0].url.searchParams.get("part")).toBe("status");
+  });
+
+  it("publishes once YouTube finished processing, with the real visibility", async () => {
+    const unlisted = setup([videos({ uploadStatus: "processed", privacyStatus: "unlisted" })]);
+    expect(await youtubePublisher.advance(uploaded({ privacy: "unlisted", madeForKids: true }), unlisted.ctx)).toEqual({
+      kind: "published",
+      externalId: "dQw4w9WgXcQ",
+      permalink: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    });
+
+    // Public was requested but the unaudited project forced private.
+    const forced = setup([videos({ uploadStatus: "processed", privacyStatus: "private" })]);
+    const step = await youtubePublisher.advance(uploaded(), forced.ctx);
+    expect(step.kind === "published" && step.note).toContain("auditoría");
+  });
+
+  it("fails with YouTube's reason when it rejects or cannot process the video", async () => {
+    const rejected = setup([videos({ uploadStatus: "rejected", rejectionReason: "duplicate" })]);
+    const step = await youtubePublisher.advance(uploaded(), rejected.ctx);
+    expect(step).toMatchObject({ kind: "failed", retryable: false });
+    expect(step.kind === "failed" && step.error).toBe("YouTube rechazó el video: es un duplicado de otro video del canal.");
+
+    const failed = setup([videos({ uploadStatus: "failed", failureReason: "codec" })]);
+    const failure = await youtubePublisher.advance(uploaded(), failed.ctx);
+    expect(failure.kind === "failed" && failure.error).toContain("no pudo procesar el video: el códec");
+
+    const gone = setup([(url) => (url.pathname === "/youtube/v3/videos" ? json({ items: [] }) : undefined)]);
+    expect(await youtubePublisher.advance(uploaded(), gone.ctx)).toMatchObject({ kind: "failed", retryable: false });
   });
 
   it("builds a valid title", () => {
