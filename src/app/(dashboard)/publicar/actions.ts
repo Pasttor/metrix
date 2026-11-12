@@ -11,6 +11,7 @@ import { HttpError } from "@/lib/platforms/http";
 import { cancelPost, retryTarget, saveSchedule } from "@/lib/publishing/commands";
 import { publishDeps, publishTokenGetter } from "@/lib/publishing/deps";
 import { getDriveVideo } from "@/lib/publishing/drive";
+import { DRIVE_ID_PATTERN, saveDriveFolder } from "@/lib/publishing/drive-folder";
 import type { TikTokCreator } from "@/lib/publishing/options";
 import { buildSchedule, readScheduleForm } from "@/lib/publishing/scheduling";
 import { runPublish } from "@/lib/publishing/runner";
@@ -102,4 +103,13 @@ export async function advancePublishingAction(): Promise<AdvanceResult> {
   const result = await runPublish(publishDeps(new Date(Date.now() + ADVANCE_BUDGET_MS)));
   if (result.claimed > 0) revalidatePath("/publicar");
   return { ok: true, claimed: result.claimed };
+}
+
+/** Remembers (or forgets, with null) the Drive folder the Picker opens in. */
+export async function setDriveFolderAction(folder: { id: string; name: string } | null): Promise<boolean> {
+  if (!(await isAuthorizedUser())) return false;
+  if (folder && (!DRIVE_ID_PATTERN.test(folder.id) || typeof folder.name !== "string")) return false;
+  const saved = await saveDriveFolder(folder ? { id: folder.id, name: folder.name.trim() || "Carpeta de videos" } : null);
+  if (saved) revalidatePath("/publicar");
+  return saved;
 }

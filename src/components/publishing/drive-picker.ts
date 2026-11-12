@@ -10,6 +10,10 @@
 export const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 
 export type PickedVideo = { id: string; name: string; mimeType: string; sizeBytes: number | null };
+export type DriveFolder = { id: string; name: string };
+export type PickerOptions = { clientId: string; apiKey: string; appId: string; loginHint?: string; folder?: DriveFolder | null };
+
+const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 type TokenResponse = { access_token?: string; error?: string };
 type PickerDoc = { id: string; name?: string; mimeType?: string; sizeBytes?: number | string };
@@ -29,10 +33,19 @@ type GoogleApi = {
   };
   picker: {
     Action: { PICKED: string; CANCEL: string };
-    ViewId: { DOCS_VIDEOS: string };
-    DocsView: new (viewId: string) => { setIncludeFolders(value: boolean): unknown; setMode?(mode: unknown): unknown };
+    ViewId: { DOCS_VIDEOS: string; FOLDERS: string };
+    DocsView: new (viewId: string) => DocsView;
     PickerBuilder: new () => PickerBuilder;
   };
+};
+
+type DocsView = {
+  setIncludeFolders(value: boolean): DocsView;
+  setSelectFolderEnabled(value: boolean): DocsView;
+  setMimeTypes(mimeTypes: string): DocsView;
+  setOwnedByMe(value: boolean): DocsView;
+  setParent(folderId: string): DocsView;
+  setLabel(label: string): DocsView;
 };
 
 type PickerBuilder = {
@@ -93,19 +106,32 @@ async function driveToken(clientId: string, loginHint?: string): Promise<string>
   return token;
 }
 
-export async function pickDriveVideo(config: { clientId: string; apiKey: string; appId: string; loginHint?: string }): Promise<PickedVideo | null> {
+async function openPicker(config: PickerOptions): Promise<{ google: GoogleApi; token: string }> {
   await Promise.all([loadScript("https://accounts.google.com/gsi/client"), loadScript("https://apis.google.com/js/api.js")]);
   const { gapi } = globals();
   if (!gapi) throw new Error("Google no cargó.");
   await new Promise<void>((resolve) => gapi.load("picker", resolve));
   const token = await driveToken(config.clientId, config.loginHint);
-  const google = globals().google!;
+  return { google: globals().google!, token };
+}
+
+/**
+ * Opens the Picker on the saved videos folder (with its subfolders), plus a
+ * "Todo mi Drive" tab with the user's own videos for one kept somewhere else.
+ */
+export async function pickDriveVideo(config: PickerOptions): Promise<PickedVideo | null> {
+  const { google, token } = await openPicker(config);
 
   return new Promise<PickedVideo | null>((resolve) => {
-    const view = new google.picker.DocsView(google.picker.ViewId.DOCS_VIDEOS);
-    view.setIncludeFolders(true);
-    const picker = new google.picker.PickerBuilder()
-      .addView(view)
+    const views: DocsView[] = [];
+    if (config.folder) {
+      views.push(new google.picker.DocsView(google.picker.ViewId.DOCS_VIDEOS).setParent(config.folder.id).setIncludeFolders(true).setLabel(config.folder.name));
+    }
+    // Only the user's own videos (no "shared with me"); setOwnedByMe is ignored together with setIncludeFolders.
+    views.push(new google.picker.DocsView(google.picker.ViewId.DOCS_VIDEOS).setOwnedByMe(true).setLabel(config.folder ? "Todo mi Drive" : "Mis videos"));
+    let builder = new google.picker.PickerBuilder();
+    for (const view of views) builder = builder.addView(view);
+    const picker = builder
       .setOAuthToken(token)
       .setDeveloperKey(config.apiKey)
       .setAppId(config.appId)
@@ -117,6 +143,32 @@ export async function pickDriveVideo(config: { clientId: string; apiKey: string;
           if (!doc) return resolve(null);
           const size = Number(doc.sizeBytes);
           resolve({ id: doc.id, name: doc.name ?? "video", mimeType: doc.mimeType ?? "", sizeBytes: Number.isFinite(size) ? size : null });
+        } else if (data.action === google.picker.Action.CANCEL) {
+          resolve(null);
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+/** Lets the user choose the folder where the videos live; the Picker opens there from then on. */
+export async function pickDriveFolder(config: PickerOptions): Promise<DriveFolder | null> {
+  const { google, token } = await openPicker(config);
+
+  return new Promise<DriveFolder | null>((resolve) => {
+    const view = new google.picker.DocsView(google.picker.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes(FOLDER_MIME).setLabel("Carpetas");
+    const picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(token)
+      .setDeveloperKey(config.apiKey)
+      .setAppId(config.appId)
+      .setLocale("es")
+      .setTitle("Elige la carpeta donde guardas tus videos")
+      .setCallback((data) => {
+        if (data.action === google.picker.Action.PICKED) {
+          const doc = data.docs?.[0];
+          resolve(doc && doc.mimeType === FOLDER_MIME ? { id: doc.id, name: doc.name ?? "Carpeta de videos" } : null);
         } else if (data.action === google.picker.Action.CANCEL) {
           resolve(null);
         }

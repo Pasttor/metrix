@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { FolderOpen } from "lucide-react";
-import { driveVideoDurationAction, schedulePostAction, type CreatorInfoResult } from "@/app/(dashboard)/publicar/actions";
+import { driveVideoDurationAction, schedulePostAction, setDriveFolderAction, type CreatorInfoResult } from "@/app/(dashboard)/publicar/actions";
 import { NetworkIcon } from "@/components/overview/network-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { YOUTUBE_PRIVACY_LABELS, YOUTUBE_PRIVACY_LEVELS, YOUTUBE_TERMS_URL, type YouTubePrivacy } from "@/lib/publishing/options";
 import { CAPTION_LIMIT, TITLE_LIMIT, type PublishAccount } from "@/lib/publishing/scheduling";
 import type { PublishPlatform } from "@/lib/publishing/types";
-import { pickDriveVideo, type PickedVideo } from "./drive-picker";
+import { pickDriveFolder, pickDriveVideo, type DriveFolder, type PickedVideo } from "./drive-picker";
 import { EMPTY_TIKTOK, TikTokOptions, tiktokBlocker, type TikTokChoices } from "./tiktok-options";
 
-export type PickerConfig = { clientId: string; apiKey: string; appId: string; loginHint?: string };
+/** `folder`: the saved videos folder the Picker opens in. */
+export type PickerConfig = { clientId: string; apiKey: string; appId: string; loginHint?: string; folder: DriveFolder | null };
 
 const LABELS: Record<PublishPlatform, string> = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
 const LIMITS: Partial<Record<PublishPlatform, string>> = {
@@ -51,6 +52,8 @@ export function PublishForm({
   const [video, setVideo] = useState<PickedVideo | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
+  const [folder, setFolder] = useState<DriveFolder | null>(picker?.folder ?? null);
+  const [savingFolder, setSavingFolder] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [caption, setCaption] = useState("");
   const [when, setWhen] = useState<"now" | "later">("now");
@@ -92,7 +95,7 @@ export function PublishForm({
     setPickError(null);
     setPicking(true);
     try {
-      const picked = await pickDriveVideo(picker);
+      const picked = await pickDriveVideo({ ...picker, folder });
       if (picked && !picked.mimeType.startsWith("video/")) setPickError("Ese archivo no es un video.");
       else if (picked) {
         setVideo(picked);
@@ -104,6 +107,23 @@ export function PublishForm({
       setPickError(error instanceof Error ? error.message : "No se pudo abrir Google Drive.");
     } finally {
       setPicking(false);
+    }
+  }
+
+  /** Chooses (or forgets) the folder the Picker opens in; Metrix remembers it for next time. */
+  async function chooseFolder(clear = false) {
+    if (!picker) return;
+    setPickError(null);
+    setSavingFolder(true);
+    try {
+      const next = clear ? null : await pickDriveFolder(picker);
+      if (!clear && !next) return;
+      if (await setDriveFolderAction(next)) setFolder(next);
+      else setPickError("No se pudo guardar la carpeta. Intenta de nuevo.");
+    } catch (error) {
+      setPickError(error instanceof Error ? error.message : "No se pudo abrir Google Drive.");
+    } finally {
+      setSavingFolder(false);
     }
   }
 
@@ -150,6 +170,33 @@ export function PublishForm({
         ) : (
           <p className="text-sm text-muted-foreground">{pickerProblem ?? "Google Drive no está disponible."}</p>
         )}
+        {picker ? (
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {folder ? (
+              <>
+                <span>
+                  Se abre en la carpeta{" "}
+                  <a href={`https://drive.google.com/drive/folders/${encodeURIComponent(folder.id)}`} target="_blank" rel="noreferrer" className="font-medium text-foreground underline underline-offset-4">
+                    {folder.name}
+                  </a>
+                </span>
+                <button type="button" onClick={() => chooseFolder()} disabled={savingFolder} className="underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+                  Cambiar carpeta
+                </button>
+                <button type="button" onClick={() => chooseFolder(true)} disabled={savingFolder} className="underline underline-offset-4 hover:text-foreground disabled:opacity-50">
+                  Quitar
+                </button>
+              </>
+            ) : (
+              <>
+                <span>¿Guardas tus videos en una carpeta?</span>
+                <button type="button" onClick={() => chooseFolder()} disabled={savingFolder} className="font-medium text-foreground underline underline-offset-4 disabled:opacity-50">
+                  {savingFolder ? "Abriendo Drive…" : "Elegir carpeta de videos"}
+                </button>
+              </>
+            )}
+          </p>
+        ) : null}
         {pickError ? (
           <p role="alert" className="text-sm text-destructive">
             {pickError}

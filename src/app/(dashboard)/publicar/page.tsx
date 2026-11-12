@@ -8,6 +8,7 @@ import { AutoRefresh } from "@/components/publishing/auto-refresh";
 import { PublishForm, type PickerConfig } from "@/components/publishing/publish-form";
 import { Button } from "@/components/ui/button";
 import { utcToZonedInput } from "@/lib/dates";
+import { getDriveFolder } from "@/lib/publishing/drive-folder";
 import { getEnv } from "@/lib/env";
 import { formatDateTime } from "@/lib/format";
 import { getDriveAccount, listPublishAccounts, listScheduledPosts, postsInFlight, SCHEDULED_SHOWN, type ScheduledPost, type ScheduledTarget } from "@/lib/metrics/publishing-data";
@@ -105,7 +106,7 @@ function PostCard({ post }: { post: ScheduledPost }) {
 
 async function NewPost() {
   const env = getEnv();
-  const [accounts, drive] = await Promise.all([listPublishAccounts(), getDriveAccount()]);
+  const [accounts, drive, folder] = await Promise.all([listPublishAccounts(), getDriveAccount(), getDriveFolder()]);
   const keys = env.GOOGLE_CLIENT_ID && env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY && env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER;
   const pickerProblem = !keys
     ? "Falta configurar Google Picker (NEXT_PUBLIC_GOOGLE_PICKER_API_KEY y NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER)."
@@ -121,6 +122,7 @@ async function NewPost() {
           apiKey: env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY!,
           appId: env.NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER!,
           loginHint: drive?.email ?? undefined,
+          folder,
         }
       : null;
   return (
