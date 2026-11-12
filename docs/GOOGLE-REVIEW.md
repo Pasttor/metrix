@@ -14,12 +14,11 @@ Metrix ya hace lo que piden: elige la visibilidad y la declaración «hecho para
 ## 1. Verificar el dominio (Search Console)
 
 1. Abre [Google Search Console](https://search.google.com/search-console) con la cuenta dueña del proyecto de Google Cloud.
-2. Elige **Agregar propiedad → Prefijo de la URL** y escribe `https://metrix-swart-mu.vercel.app`.
-3. En los métodos de verificación, elige **Etiqueta HTML** y copia solo el valor de `content="…"`.
-4. En Vercel (*metrix → Settings → Environment Variables*), agrega `GOOGLE_SITE_VERIFICATION` con ese valor y vuelve a desplegar.
-5. Regresa a Search Console y da clic en **Verificar**.
+2. Elige **Agregar propiedad → Dominio** y escribe `metrix.website`.
+3. Agrega el registro TXT que te da Google en el DNS del dominio (Hostinger).
+4. Regresa a Search Console y da clic en **Verificar**.
 
-`vercel.app` está en la lista de sufijos públicos, así que `metrix-swart-mu.vercel.app` cuenta como dominio propio.
+Un dominio `*.vercel.app` no sirve: Google rechaza la marca porque el dominio no es tuyo.
 
 ## 2. Google Auth Platform
 
@@ -28,10 +27,10 @@ En [Google Cloud Console](https://console.cloud.google.com/), con el proyecto de
 **Branding**
 - Nombre de la app: `Metrix`. Correo de asistencia: el tuyo.
 - Logotipo: opcional. Si lo subes, también pasa por revisión.
-- Página principal: `https://metrix-swart-mu.vercel.app/acerca`
-- Política de privacidad: `https://metrix-swart-mu.vercel.app/privacidad`
-- Condiciones del servicio: `https://metrix-swart-mu.vercel.app/terminos`
-- Dominios autorizados: `metrix-swart-mu.vercel.app`
+- Página principal: `https://metrix.website/acerca`
+- Política de privacidad: `https://metrix.website/privacidad`
+- Condiciones del servicio: `https://metrix.website/terminos`
+- Dominios autorizados: `metrix.website`
 
 **Acceso a los datos.** Deben estar exactamente estos permisos:
 - `.../auth/youtube.readonly`
@@ -45,7 +44,7 @@ Si no usas los ingresos de YouTube (`yt-analytics-monetary.readonly`), no lo agr
 **«¿Cómo se usarán los permisos?»** (máx. 1000 caracteres; este texto tiene 959). Google solo lo pide para los permisos sensibles (`youtube.readonly`, `youtube.upload`); `yt-analytics.readonly` y `drive.file` salen como no sensibles. Quita `yt-analytics-monetary.readonly` si aparece: Metrix no lo pide mientras `YOUTUBE_MONETARY=false`.
 
 ```
-Metrix is a personal, single-user dashboard (https://metrix-swart-mu.vercel.app). The owner connects their own YouTube channel to see its stats and to publish their own videos.
+Metrix is a personal, single-user dashboard (https://metrix.website). The owner connects their own YouTube channel to see its stats and to publish their own videos.
 
 youtube.readonly: reads the owner's channel (title, thumbnail, subscriber and video counts) and the list of their own videos with statistics, shown on the YouTube page and saved daily to chart growth.
 
@@ -58,7 +57,7 @@ Narrower scopes are not enough: youtube.readonly is the read scope for channel a
 
 Graba la ventana completa de Chrome con la barra de direcciones visible. Google pide que la pantalla de consentimiento salga **en inglés**. Al llegar a `accounts.google.com`, agrega `&hl=en` al final de la URL y presiona Enter.
 
-1. **Entrar**: abre `https://metrix-swart-mu.vercel.app/acerca`, luego **/login**, inicia sesión y muestra el Resumen.
+1. **Entrar**: abre `https://metrix.website/acerca`, luego **/login**, inicia sesión y muestra el Resumen.
 2. **Conectar YouTube**:
    1. En *Configuración → Conexiones*, da clic en **Reconectar** en YouTube.
    2. Agrega `&hl=en` a la URL.
@@ -86,7 +85,7 @@ Sube el video a YouTube como **No listado** y pega el enlace en el formulario de
 Formulario: <https://support.google.com/youtube/contact/yt_api_form> (*YouTube API Services – Audit and Quota Extension Form*). Llénalo con la misma cuenta del proyecto.
 
 - **Project number**: el de `NEXT_PUBLIC_GOOGLE_PROJECT_NUMBER`.
-- **API client URL**: `https://metrix-swart-mu.vercel.app/acerca`
+- **API client URL**: `https://metrix.website/acerca`
 - **¿Quién la usa?** Solo el dueño (uso interno, un usuario).
 - **Cómo usa la API**: reutiliza el texto de la sección 2 para `youtube.readonly`, `yt-analytics.readonly` y `youtube.upload`.
 - **Demo**: el mismo video no listado de la sección 3.
