@@ -9,10 +9,11 @@ import { listPublishAccounts } from "@/lib/metrics/publishing-data";
 import { ReauthRequiredError } from "@/lib/oauth/token-store";
 import { HttpError } from "@/lib/platforms/http";
 import { cancelPost, retryTarget, saveSchedule } from "@/lib/publishing/commands";
-import { publishTokenGetter } from "@/lib/publishing/deps";
+import { publishDeps, publishTokenGetter } from "@/lib/publishing/deps";
 import { getDriveVideo } from "@/lib/publishing/drive";
 import type { TikTokCreator } from "@/lib/publishing/options";
 import { buildSchedule, readScheduleForm } from "@/lib/publishing/scheduling";
+import { runPublish } from "@/lib/publishing/runner";
 import { CREATOR_MESSAGES, fetchCreatorInfo } from "@/lib/publishing/tiktok-publisher";
 
 /** The user only reads scheduled posts (RLS); writes go through service_role after the session check. */
@@ -30,7 +31,7 @@ export async function schedulePostAction(_previous: ScheduleActionResult | null,
 
   revalidatePath("/publicar");
   const soon = Date.parse(result.rows.post.scheduled_at) <= now.getTime() + 60_000;
-  return { ok: true, message: soon ? "Listo: se publicará en los próximos 5 minutos." : "Listo: quedó programada." };
+  return { ok: true, message: soon ? "Listo: ya se está publicando. Sigue el estado de cada red abajo." : "Listo: quedó programada." };
 }
 
 const idSchema = z.uuid();
@@ -82,4 +83,23 @@ export async function driveVideoDurationAction(fileId: string): Promise<number |
   } catch {
     return null;
   }
+}
+
+/** Server Actions share the page's maxDuration (300 s); stop claiming new targets well before it. */
+const ADVANCE_BUDGET_MS = 240_000;
+
+export type AdvanceResult = { ok: boolean; claimed: number };
+
+/**
+ * Advances the publish queue right now (uploads what is due, asks each
+ * network for the status of what is processing). /publicar calls it every few
+ * seconds while a post is in flight, so statuses change as soon as the network
+ * finishes instead of waiting for the next cron run. The leases in
+ * claim_publish_targets keep it from colliding with the cron.
+ */
+export async function advancePublishingAction(): Promise<AdvanceResult> {
+  if (!(await isAuthorizedUser())) return { ok: false, claimed: 0 };
+  const result = await runPublish(publishDeps(new Date(Date.now() + ADVANCE_BUDGET_MS)));
+  if (result.claimed > 0) revalidatePath("/publicar");
+  return { ok: true, claimed: result.claimed };
 }

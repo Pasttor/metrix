@@ -27,6 +27,13 @@ export type PublishJob = {
   attempts: number;
 };
 
+/**
+ * How soon a network that is still processing gets asked again. Short on
+ * purpose: /publicar advances the queue every few seconds while it is open,
+ * so a post shows Publicado (or Falló) right after the network finishes.
+ */
+export const STATUS_CHECK_SECONDS = 10;
+
 export type PublishStep =
   | { kind: "published"; externalId: string; permalink: string | null; note?: string }
   | { kind: "waiting"; state: Record<string, unknown>; checkAfterSeconds: number }

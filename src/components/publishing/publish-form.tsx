@@ -301,7 +301,7 @@ export function PublishForm({
         </Button>
         {blocker && video && selected.length > 0 ? <p className="text-sm text-muted-foreground">{blocker}</p> : null}
         <p aria-live="polite" className={`text-sm ${state?.ok === false ? "text-destructive" : "text-muted-foreground"}`}>
-          {state?.message ?? "Metrix revisa la cola cada 5 minutos y te avisa en Alertas cuando cada red termina. Cada red puede tardar unos minutos más en mostrar el video."}
+          {state?.message ?? "Con esta página abierta, Metrix publica al instante y muestra en segundos cuando cada red termina; si la cierras, sigue cada minuto y te avisa en Alertas."}
         </p>
       </div>
     </form>

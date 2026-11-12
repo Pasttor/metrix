@@ -85,7 +85,7 @@ describe("Instagram publisher", () => {
       (url) => (url.hostname === "rupload.facebook.com" ? json(igUpload) : undefined),
     ]);
     const step = await instagramPublisher.advance(job("instagram"), ctx);
-    expect(step).toEqual({ kind: "waiting", state: { containerId: igContainer.id }, checkAfterSeconds: 60 });
+    expect(step).toEqual({ kind: "waiting", state: { containerId: igContainer.id }, checkAfterSeconds: 10 });
 
     const create = calls.find(is("POST", "/ig-1/media"))!;
     const body = new URLSearchParams(String(create.init.body));
@@ -146,7 +146,7 @@ describe("Facebook publisher", () => {
       (url) => (url.hostname === "rupload.facebook.com" ? json({ success: true }) : undefined),
     ]);
     const step = await facebookPublisher.advance(job("facebook"), ctx);
-    expect(step).toEqual({ kind: "waiting", state: { videoId: fbStart.video_id }, checkAfterSeconds: 60 });
+    expect(step).toEqual({ kind: "waiting", state: { videoId: fbStart.video_id }, checkAfterSeconds: 10 });
     const finish = calls.filter(is("POST", "/video_reels")).at(-1)!;
     const body = new URLSearchParams(String(finish.init.body));
     expect(body.get("video_state")).toBe("PUBLISHED");
@@ -236,7 +236,7 @@ describe("TikTok publisher", () => {
       (url, init) => (url.hostname === "open-upload.tiktokapis.com" && init.method === "PUT" ? new Response(null, { status: 201 }) : undefined),
     ]);
     const step = await tiktokPublisher.advance(job("tiktok"), ctx);
-    expect(step).toEqual({ kind: "waiting", state: { publishId: ttInit.data.publish_id, privacyLevel: "FOLLOWER_OF_CREATOR" }, checkAfterSeconds: 60 });
+    expect(step).toEqual({ kind: "waiting", state: { publishId: ttInit.data.publish_id, privacyLevel: "FOLLOWER_OF_CREATOR" }, checkAfterSeconds: 10 });
 
     const init = JSON.parse(String(calls.find((call) => call.url.pathname.endsWith("/video/init/"))!.init.body));
     // Stitch was allowed by the user but the account disabled it (fixture): TikTok's setting wins.

@@ -186,7 +186,7 @@ export function registerMetrixTools(server: McpServer): void {
     "programar_publicacion",
     {
       title: "Programar o publicar un video",
-      description: `Programa (o publica en los próximos 5 minutos) un video de Google Drive en una o varias redes. La hora va en ${getEnv().REPORT_TIMEZONE}. Confirma con el usuario antes de llamarla: publica en sus cuentas reales.`,
+      description: `Programa (o publica en el siguiente minuto) un video de Google Drive en una o varias redes. La hora va en ${getEnv().REPORT_TIMEZONE}. Confirma con el usuario antes de llamarla: publica en sus cuentas reales.`,
       inputSchema: z.object({
         drive_file_id: z.string().describe("id de videos_drive"),
         texto: z.string().max(2200).describe("Texto general con hashtags"),
@@ -262,7 +262,7 @@ export function registerMetrixTools(server: McpServer): void {
       run(async () => {
         const retried = await data.retryScheduledTarget(target_id);
         if (!retried) throw new Error("Esa red no está fallida o no existe.");
-        return { ok: true, mensaje: "Quedó en cola; se intentará en los próximos 5 minutos." };
+        return { ok: true, mensaje: "Quedó en cola; se intentará en el siguiente minuto." };
       }),
   );
 

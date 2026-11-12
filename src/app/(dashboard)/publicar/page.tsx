@@ -16,6 +16,9 @@ import { cancelPostAction, retryTargetAction } from "./actions";
 
 export const metadata: Metadata = { title: "Publicar · Metrix" };
 
+// advancePublishingAction can download a video from Drive and upload it in one call.
+export const maxDuration = 300;
+
 const NETWORK: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok" };
 
 const POST_STATUS: Record<PostStatus, string> = {

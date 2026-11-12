@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { errorCode, HttpError, parseJson, type FetchFn } from "@/lib/platforms/http";
 import { toFailure } from "./errors";
-import { PublishError, type PublishContext, type PublishJob, type PublishStep, type Publisher } from "./types";
+import { PublishError, STATUS_CHECK_SECONDS, type PublishContext, type PublishJob, type PublishStep, type Publisher } from "./types";
 
 /**
  * Instagram Reels and Facebook Page Reels through the Graph API, uploading the
@@ -60,12 +60,12 @@ export const instagramPublisher: Publisher = {
           share_to_feed: "true",
         }, createdSchema);
         await rupload(ctx.fetch, container.uri ?? `${RUPLOAD}/ig-api-upload/${ctx.graphVersion}/${container.id}`, token, bytes);
-        return { kind: "waiting", state: { containerId: container.id }, checkAfterSeconds: 60 };
+        return { kind: "waiting", state: { containerId: container.id }, checkAfterSeconds: STATUS_CHECK_SECONDS };
       }
 
       const status = await graph(ctx, token, "GET", containerId, { fields: "status_code,status" }, statusSchema);
       if (status.status_code === "IN_PROGRESS" || status.status_code === undefined) {
-        return { kind: "waiting", state: job.state, checkAfterSeconds: 120 };
+        return { kind: "waiting", state: job.state, checkAfterSeconds: STATUS_CHECK_SECONDS };
       }
       if (status.status_code !== "FINISHED") {
         throw new PublishError(`Instagram no pudo procesar el video (${status.status_code}${status.status ? `: ${status.status}` : ""}).`);
@@ -109,7 +109,7 @@ export const facebookPublisher: Publisher = {
           video_state: "PUBLISHED",
           description: job.caption.slice(0, 2200),
         }, successSchema);
-        return { kind: "waiting", state: { videoId: start.video_id }, checkAfterSeconds: 60 };
+        return { kind: "waiting", state: { videoId: start.video_id }, checkAfterSeconds: STATUS_CHECK_SECONDS };
       }
 
       const video = await graph(ctx, token, "GET", videoId, { fields: "status,permalink_url" }, videoStatusSchema);
@@ -122,7 +122,7 @@ export const facebookPublisher: Publisher = {
         const link = video.permalink_url ? (video.permalink_url.startsWith("http") ? video.permalink_url : `https://www.facebook.com${video.permalink_url}`) : null;
         return { kind: "published", externalId: videoId, permalink: link };
       }
-      return { kind: "waiting", state: job.state, checkAfterSeconds: 120 };
+      return { kind: "waiting", state: job.state, checkAfterSeconds: STATUS_CHECK_SECONDS };
     } catch (error) {
       return describe(error, "Facebook");
     }

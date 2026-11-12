@@ -3,7 +3,7 @@ import { errorCode, HttpError, ResponseShapeError, type FetchFn } from "@/lib/pl
 import { TIKTOK_API } from "@/lib/platforms/tiktok/client";
 import { toFailure } from "./errors";
 import { TIKTOK_PRIVACY_LEVELS, tiktokOptionsSchema, type TikTokCreator, type TikTokPrivacyLevel } from "./options";
-import { PublishError, type PublishContext, type PublishJob, type PublishStep, type Publisher } from "./types";
+import { PublishError, STATUS_CHECK_SECONDS, type PublishContext, type PublishJob, type PublishStep, type Publisher } from "./types";
 
 /**
  * TikTok Content Posting API (Direct Post) with FILE_UPLOAD: ask the creator
@@ -153,7 +153,7 @@ export const tiktokPublisher: Publisher = {
         }, initSchema);
         if (!init.data?.upload_url) throw new PublishError("TikTok no devolvió la dirección de subida.", true);
         await uploadChunks(ctx.fetch, init.data.upload_url, bytes, job.video.mimeType || "video/mp4");
-        return { kind: "waiting", state: { publishId: init.data.publish_id, privacyLevel: options.privacyLevel }, checkAfterSeconds: 60 };
+        return { kind: "waiting", state: { publishId: init.data.publish_id, privacyLevel: options.privacyLevel }, checkAfterSeconds: STATUS_CHECK_SECONDS };
       }
 
       const status = await post(ctx.fetch, token, "status/fetch/", { publish_id: publishId }, statusSchema);
@@ -164,7 +164,7 @@ export const tiktokPublisher: Publisher = {
         const step: PublishStep = { kind: "published", externalId: postId ? String(postId) : publishId, permalink: null };
         return job.state.privacyLevel === "SELF_ONLY" ? { ...step, note: "Publicado como «Solo yo»." } : step;
       }
-      return { kind: "waiting", state: job.state, checkAfterSeconds: 120 };
+      return { kind: "waiting", state: job.state, checkAfterSeconds: STATUS_CHECK_SECONDS };
     } catch (error) {
       return toFailure(error, "TikTok", (http) => {
         const message = MESSAGES[http.code];
